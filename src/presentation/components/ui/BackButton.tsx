@@ -2,9 +2,6 @@
 
 import { useState } from 'react'
 import { useSceneStore } from '@/presentation/stores/sceneStore'
-import { useThree } from '@react-three/fiber'
-
-// Rendered outside Canvas — reads camera pos from store directly
 export function BackButton() {
   const [hov, setHov] = useState(false)
   const { state, requestFlyBack } = useSceneStore()

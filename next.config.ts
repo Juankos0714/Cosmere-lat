@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
-  // Allow importing .glsl files as strings via raw-loader alternative
+  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei', 'three-mesh-bvh'],
   webpack(cfg) {
     cfg.module.rules.push({
       test: /\.glsl$/,

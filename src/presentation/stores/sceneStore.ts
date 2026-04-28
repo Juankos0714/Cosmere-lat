@@ -14,13 +14,22 @@ export interface FlyPath {
   destinationSystemId: SystemId | null
 }
 
+export interface MarkerPosition {
+  id: string
+  x: number
+  y: number
+  behind: boolean
+}
+
 interface SceneStore {
   state: SceneState
   activeSystemId: SystemId | null
   flyPath: FlyPath | null
+  markerPositions: MarkerPosition[]
   requestFlyTo: (systemId: SystemId, camPos: Vec3, systemPos: Vec3) => void
   requestFlyBack: (camPos: Vec3) => void
   completeFly: () => void
+  setMarkerPositions: (positions: MarkerPosition[]) => void
 }
 
 const CAM_HOME: Vec3 = { x: 0, y: 11, z: 17 }
@@ -30,6 +39,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   state: 'galaxy',
   activeSystemId: null,
   flyPath: null,
+  markerPositions: [],
 
   requestFlyTo(systemId, camPos, systemPos) {
     if (get().state === 'flying') return
@@ -74,5 +84,9 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
     } else {
       set({ state: 'galaxy', activeSystemId: null, flyPath: null })
     }
+  },
+
+  setMarkerPositions(positions) {
+    set({ markerPositions: positions })
   },
 }))

@@ -6,6 +6,7 @@ import { LoadingScreen } from '@/presentation/components/ui/LoadingScreen'
 import { GalaxyHeader } from '@/presentation/components/ui/GalaxyHeader'
 import { BackButton } from '@/presentation/components/ui/BackButton'
 import { SystemPanel } from '@/presentation/components/ui/SystemPanel'
+import { GalaxyMarkersOverlay } from '@/presentation/components/ui/GalaxyMarkersOverlay'
 import { useSceneStore } from '@/presentation/stores/sceneStore'
 import { useUIStore } from '@/presentation/stores/uiStore'
 import { systemService } from '@/data/container'
@@ -73,6 +74,7 @@ export default function GalaxyPage() {
         <LoadingScreen />
         <GalaxyHeader />
         <GalaxyHint />
+        <GalaxyMarkersOverlay systems={allSystems} />
         <BackButton />
         <SystemPanel
           system={activeSystem}
