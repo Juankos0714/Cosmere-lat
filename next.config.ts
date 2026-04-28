@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
-  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei', 'three-mesh-bvh'],
+  transpilePackages: ['three', '@react-three/fiber', 'three-mesh-bvh'],
   webpack(cfg) {
     cfg.module.rules.push({
       test: /\.glsl$/,
