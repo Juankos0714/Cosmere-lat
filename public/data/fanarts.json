@@ -1,0 +1,148 @@
+{
+  "fanarts": [
+    {
+      "id": "fa-001",
+      "systemId": "roshar",
+      "title": "Kaladin con Syl en la tormenta",
+      "artist": "Petar Penev",
+      "artistUrl": "https://www.artstation.com/petarpenev",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/oAqgeZ",
+      "thumbnailPath": "/fanarts/thumbs/fa-001.svg",
+      "tags": ["kaladin", "syl", "windrunner", "highstorm", "stormlight"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-002",
+      "systemId": "roshar",
+      "title": "Dalinar en Thaylen City",
+      "artist": "Art by Botanica Xu",
+      "artistUrl": "https://www.artstation.com/botanicaxu",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/dalinar",
+      "thumbnailPath": "/fanarts/thumbs/fa-002.svg",
+      "tags": ["dalinar", "bondsmith", "oathbringer"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-003",
+      "systemId": "scadrial",
+      "title": "Vin en las brumas",
+      "artist": "Miranda Meeks",
+      "artistUrl": "https://www.artstation.com/mirandameeks",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/vin-mist",
+      "thumbnailPath": "/fanarts/thumbs/fa-003.svg",
+      "tags": ["vin", "mistborn", "mist", "allomancy"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-004",
+      "systemId": "scadrial",
+      "title": "Kelsier el Superviviente",
+      "artist": "Steve Argyle",
+      "artistUrl": "https://www.artstation.com/steveargyle",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/kelsier",
+      "thumbnailPath": "/fanarts/thumbs/fa-004.svg",
+      "tags": ["kelsier", "survivor", "mistborn", "skaa"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-005",
+      "systemId": "nalthis",
+      "title": "Nightblood desenvainada",
+      "artist": "Eldritch Miri",
+      "artistUrl": "https://www.deviantart.com/eldritchmiri",
+      "source": "deviantart",
+      "sourceUrl": "https://www.deviantart.com/eldritchmiri/art/nightblood",
+      "thumbnailPath": "/fanarts/thumbs/fa-005.svg",
+      "tags": ["nightblood", "vasher", "warbreaker", "sword"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-006",
+      "systemId": "roshar",
+      "title": "Shallan y el Pattern",
+      "artist": "Karla Ortiz",
+      "artistUrl": "https://www.artstation.com/karlaortiz",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/shallan",
+      "thumbnailPath": "/fanarts/thumbs/fa-006.svg",
+      "tags": ["shallan", "pattern", "lightweaver", "stormlight"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-007",
+      "systemId": "lumar",
+      "title": "Tress en el mar esmeralda",
+      "artist": "Dominique Wesson",
+      "artistUrl": "https://www.artstation.com/dominiquewesson",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/tress",
+      "thumbnailPath": "/fanarts/thumbs/fa-007.svg",
+      "tags": ["tress", "lumar", "ether", "emerald-sea"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-008",
+      "systemId": "komashi",
+      "title": "Yumi invocando yoki-hijo",
+      "artist": "Aliya Chen",
+      "artistUrl": "https://www.artstation.com/aliyachen",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/yumi",
+      "thumbnailPath": "/fanarts/thumbs/fa-008.svg",
+      "tags": ["yumi", "yoki-hijo", "komashi", "spirits"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-009",
+      "systemId": "sel",
+      "title": "Raoden dibujando Aons",
+      "artist": "Thoughtful Ghost",
+      "artistUrl": "https://www.deviantart.com/thoughtfulghost",
+      "source": "deviantart",
+      "sourceUrl": "https://www.deviantart.com/thoughtfulghost/art/raoden",
+      "thumbnailPath": "/fanarts/thumbs/fa-009.svg",
+      "tags": ["raoden", "aon-dor", "elantris", "sel"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-010",
+      "systemId": "taldain",
+      "title": "Kenton en el desierto blanco",
+      "artist": "Isaac Stewart",
+      "artistUrl": "https://www.artstation.com/isaacstewart",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/kenton",
+      "thumbnailPath": "/fanarts/thumbs/fa-010.svg",
+      "tags": ["kenton", "sand-master", "taldain", "dayside"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-011",
+      "systemId": "canticle",
+      "title": "Nomad bajo el sol eterno",
+      "artist": "Ernanda Souza",
+      "artistUrl": "https://www.artstation.com/ernandasouza",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/nomad",
+      "thumbnailPath": "/fanarts/thumbs/fa-011.svg",
+      "tags": ["sigzil", "nomad", "canticle", "sunlit-man"],
+      "addedAt": "2026-04-27"
+    },
+    {
+      "id": "fa-012",
+      "systemId": "scadrial",
+      "title": "Wax y Wayne en Elendel",
+      "artist": "Donato Giancola",
+      "artistUrl": "https://www.artstation.com/donatogiancola",
+      "source": "artstation",
+      "sourceUrl": "https://www.artstation.com/artwork/waxwayne",
+      "thumbnailPath": "/fanarts/thumbs/fa-012.svg",
+      "tags": ["wax", "wayne", "elendel", "alloy-of-law"],
+      "addedAt": "2026-04-27"
+    }
+  ]
+}

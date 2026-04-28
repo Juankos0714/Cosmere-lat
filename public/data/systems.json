@@ -1,0 +1,211 @@
+{
+  "systems": [
+    {
+      "id": "roshar",
+      "name": "Sistema Roshariano",
+      "subtitle": "Ashyn · Roshar · Braize",
+      "tagline": "Las tormentas son la sangre del mundo",
+      "description": "El sistema más narrativamente rico del Cosmere. Tres Esquirlas lo definen: Honor (muerto), Cultivación y Odium. Las Altas Tormentas barren el planeta de este a oeste, y los spren —fragmentos de pensamiento y emoción— son el corazón de toda magia.",
+      "shard": "Honor · Cultivación · Odium",
+      "magic": "Surgebinding · Fabriales · Luz de Tormenta · Luz Siniestra",
+      "galacticPos": { "x": -4.5, "y": 0.4, "z": -1.5 },
+      "color": "#4d8fd4",
+      "glowHex": 5017556,
+      "starType": "azul-blanca",
+      "planets": [
+        { "id": "ashyn",    "name": "Ashyn",  "type": "gas",      "radius": 0.28, "orbitRadius": 2.0, "orbitSpeed": 0.45, "color": "#c8a855", "tilt": 18, "desc": "Mundo de ciudades flotantes, destruido por una catástrofe mágica antigua." },
+        { "id": "roshar-p", "name": "Roshar", "type": "roshar",   "radius": 0.62, "orbitRadius": 3.8, "orbitSpeed": 0.22, "color": "#2a6aaa", "tilt": 5,  "hasAtmosphere": true, "atmosphereColor": "#3a7fd4", "hasMoon": true, "moonName": "Nomon", "moonOrbit": 1.2, "moonRadius": 0.1, "moonSpeed": 1.8, "hasStorm": true, "hasClouds": true, "desc": "Un mundo oceánico y fracturado. Las Altas Tormentas lo barren eternamente. Hogar de los Caballeros Radiantes." },
+        { "id": "braize",   "name": "Braize", "type": "hellworld", "radius": 0.22, "orbitRadius": 5.8, "orbitSpeed": 0.11, "color": "#c44040", "tilt": 22, "hasAtmosphere": true, "atmosphereColor": "#c04030", "desc": "Prisión de los Deshecha. Un infierno frío donde el espíritu no puede descansar." }
+      ],
+      "books": [
+        { "id": "roshar-b1", "title": "El Camino de los Reyes",  "subtitle": "El Archivo de las Tormentas #1", "year": "2010", "color": "#1a3a7a", "pov": ["Kaladin","Shallan","Dalinar"], "summary": "En un mundo azotado por las Altas Tormentas, Kaladin cae de soldado a esclavo de puentes. Dalinar Kholin sueña con visiones del Todopoderoso. Shallan Davar busca robar un Fabulinal para salvar a su familia. El primer volumen establece el mundo de Roshar y el retorno de los Portadores del Vacío." },
+        { "id": "roshar-b2", "title": "Palabras Radiantes",       "subtitle": "El Archivo de las Tormentas #2", "year": "2014", "color": "#1e4a8a", "pov": ["Kaladin","Shallan","Dalinar","Adolin"], "summary": "Kaladin lucha por proteger a quienes ama mientras sus poderes de Radiante crecen. Shallan viaja al lugar mítico de Urithiru. Dalinar intenta unir a los reyes de Roshar ante la amenaza de la Desolación. El pasado de Szeth es revelado." },
+        { "id": "roshar-b3", "title": "Juramentada",              "subtitle": "El Archivo de las Tormentas #3", "year": "2017", "color": "#162a5a", "pov": ["Shallan","Kaladin","Dalinar","Adolin"], "summary": "La gran Desolación llega. Shallan descubre verdades sobre su identidad fragmentada. Dalinar accede a visiones del pasado y aprende la verdad sobre la muerte de Honor. Kaladin enfrenta su mayor juramento." },
+        { "id": "roshar-b4", "title": "El Ritmo de la Guerra",    "subtitle": "El Archivo de las Tormentas #4", "year": "2020", "color": "#0f2040", "pov": ["Navani","Kaladin","Shallan","Venli"], "summary": "La guerra entra en una nueva fase: la batalla por la torre de Urithiru. Navani descubre la naturaleza de la Investidura en cautiverio. Kaladin sufre una profunda crisis. La Luz Siniestra hace su primera aparición." },
+        { "id": "roshar-b5", "title": "Viento y Verdad",          "subtitle": "El Archivo de las Tormentas #5", "year": "2024", "color": "#1a3060", "pov": ["Szeth","Kaladin","Shallan","Dalinar"], "summary": "La conclusión de la primera mitad del Archivo. Dalinar viaja al dominio de Odium. Kaladin regresa a sus raíces. Los conflictos del sistema Roshariano alcanzan un punto de inflexión que redefine el Cosmere entero." }
+      ],
+      "novellas": ["Edgedancer", "Dawnshard", "Esheran"],
+      "connections": [
+        { "targetId": "nalthis",  "label": "Nightblood",     "desc": "La espada viviente Nightblood, nacida en Nalthis, llega a Roshar en manos de Szeth" },
+        { "targetId": "nalthis",  "label": "Zahel / Vasher", "desc": "Vasher, el Despertar de Nalthis, vive en Roshar bajo el nombre de Zahel" },
+        { "targetId": "scadrial", "label": "Kelsier activo", "desc": "El Superviviente opera en las sombras del Cosmere, influyendo en Roshar desde el Reino Cognitivo" },
+        { "targetId": "taldain",  "label": "Khriss & Nazh",  "desc": "Los estudiosos de Taldain documentan la Investidura de Roshar en los Archivos de Arcanum" }
+      ]
+    },
+    {
+      "id": "scadrial",
+      "name": "Sistema Scadriano",
+      "subtitle": "Scadrial",
+      "tagline": "La bruma oculta todos los secretos",
+      "description": "Un mundo de cenizas y brumas perpetuas, creado y destruido por las Esquirlas de Ruina y Preservación. Ahora bajo Armonía, la magia de los metales fluye a través de quienes los queman, los almacenan o se los clavan en la carne.",
+      "shard": "Armonía (Ruina + Preservación)",
+      "magic": "Alomancia · Feruquimia · Hemalurgia",
+      "galacticPos": { "x": 3.2, "y": -0.3, "z": 2.8 },
+      "color": "#c8a855",
+      "glowHex": 13148245,
+      "starType": "amarilla",
+      "planets": [
+        { "id": "scadrial-p", "name": "Scadrial", "type": "scadrial", "radius": 0.58, "orbitRadius": 3.2, "orbitSpeed": 0.25, "color": "#7a6030", "tilt": 8, "hasAtmosphere": true, "atmosphereColor": "#9a7030", "hasClouds": true, "cloudColor": "#2a1a08", "desc": "Un mundo creado por Esquirlas. Las cenizas caían del cielo; la bruma sigue siendo la vestimenta de Preservación." }
+      ],
+      "books": [
+        { "id": "scadrial-b1", "title": "El Imperio Final",       "subtitle": "Nacidos de la Bruma #1", "year": "2006", "color": "#2a1a08", "pov": ["Kelsier","Vin"], "summary": "El Lord Legislador gobierna Scadrial hace mil años. Kelsier, un alomántico Nacido de la Bruma, lidera una banda de ladrones para derrocar al dios-emperador. Vin, una chica de las calles, descubre su extraordinario poder." },
+        { "id": "scadrial-b2", "title": "El Pozo de la Ascensión", "subtitle": "Nacidos de la Bruma #2", "year": "2007", "color": "#1a1005", "pov": ["Vin","Elend"], "summary": "El Imperio ha caído, pero el caos político amenaza con destruir lo construido. Vin protege a Elend Venture. Algo antiguo despierta bajo la ciudad. La naturaleza de Ruina y Preservación comienza a revelarse." },
+        { "id": "scadrial-b3", "title": "El Héroe de las Eras",   "subtitle": "Nacidos de la Bruma #3", "year": "2008", "color": "#0f0a03", "pov": ["Vin","Elend","Sazed"], "summary": "El fin del mundo se acerca. Ruina se libera. Vin y Elend luchan por salvar a la humanidad mientras Sazed busca fe. El clímax de la Era 1 redefine los conceptos de dios, destino e Investidura." },
+        { "id": "scadrial-b4", "title": "Aleación de Ley",        "subtitle": "Wax & Wayne #1", "year": "2011", "color": "#2a2010", "pov": ["Waxillium","Wayne"], "summary": "Trescientos años después. Scadrial tiene ferrocarriles y pistolas. Waxillium Ladrian, alomántico y feruquimista, regresa de las Tierras Exteriores para heredar su casa noble." },
+        { "id": "scadrial-b5", "title": "Sombras de Identidad",   "subtitle": "Wax & Wayne #2", "year": "2016", "color": "#201808", "pov": ["Waxillium","Wayne","Marasi"], "summary": "Wax investiga a Los Colmillos, organización que usa hemalurgia para crear armas. Kelsier reaparece, operando desde el Reino Cognitivo." },
+        { "id": "scadrial-b6", "title": "Brazales de Duelo",      "subtitle": "Wax & Wayne #3", "year": "2017", "color": "#251a0a", "pov": ["Waxillium","Wayne","Marasi","Steris"], "summary": "La hermana de Wax es secuestrada. La búsqueda lo lleva a enfrentarse al Superviviente de forma directa. La escena final revela a un agente de Autonomía, conectando Scadrial con el conflicto mayor." },
+        { "id": "scadrial-b7", "title": "El Metal Perdido",       "subtitle": "Wax & Wayne #4", "year": "2022", "color": "#1a1208", "pov": ["Waxillium","Wayne","Marasi","Steris"], "summary": "La conclusión de Wax & Wayne. Una amenaza de escala cósmica obliga a los héroes a actuar más allá de Scadrial. Por primera vez, el viaje entre mundos se vuelve central para la trama." }
+      ],
+      "novellas": [],
+      "connections": [
+        { "targetId": "roshar",  "label": "Kelsier activo",      "desc": "Kelsier sobrevive como el Superviviente y opera en el Reino Cognitivo, influenciando Roshar y más allá" },
+        { "targetId": "taldain", "label": "Autonomía interfiere", "desc": "Un avatar de Autonomía aparece en Scadrial, usando a Los Colmillos como herramienta" }
+      ]
+    },
+    {
+      "id": "sel",
+      "name": "Sistema Sel",
+      "subtitle": "Sel",
+      "tagline": "Las formas dan vida al poder",
+      "description": "Un planeta biesquirlado donde Devoción y Dominio fueron astilladas por Odium y apresadas en el Reino Cognitivo. Su magia está íntimamente ligada a la geografía física del mundo.",
+      "shard": "Devoción · Dominio (astilladas)",
+      "magic": "Aon Dor · ChayShan · Sellos del Alma · Dakhor",
+      "galacticPos": { "x": -1.8, "y": 0.6, "z": 4.2 },
+      "color": "#7cba65",
+      "glowHex": 8173669,
+      "starType": "verde-amarilla",
+      "planets": [
+        { "id": "sel-p", "name": "Sel", "type": "sel", "radius": 0.52, "orbitRadius": 3.0, "orbitSpeed": 0.32, "color": "#3a7a35", "tilt": 12, "hasAtmosphere": true, "atmosphereColor": "#50aa40", "hasClouds": true, "desc": "Hogar de Elantris, la ciudad de dioses caída. La magia requiere formas y símbolos precisos atados a la geografía." }
+      ],
+      "books": [
+        { "id": "sel-b1", "title": "Elantris",             "subtitle": "Sel · Novela independiente",  "year": "2005", "color": "#1a3010", "pov": ["Raoden","Sarene","Hrathen"], "summary": "Elantris fue la ciudad de los dioses: sus habitantes eran transformados en seres de poder mágico. Hace diez años la ciudad cayó. Raoden, el príncipe heredero, es transformado y arrojado a la ciudad maldita." },
+        { "id": "sel-b2", "title": "El Alma del Emperador", "subtitle": "Sel · Novella (Hugo Award)", "year": "2012", "color": "#0f2008", "pov": ["Shai"], "summary": "Shai, una Forjadora del Alma capturada, recibe una misión imposible: recrear el alma del Emperador en 100 días. Una exploración profunda de identidad, arte y lo que hace a una persona." }
+      ],
+      "novellas": ["El Alma del Emperador"],
+      "connections": [
+        { "targetId": "roshar",   "label": "Odium el destructor", "desc": "Odium astilló las Esquirlas de Sel, patrón que repite en Roshar al matar a Honor" },
+        { "targetId": "scadrial", "label": "Hoid presente",        "desc": "Hoid aparece en Sel como mendigo, recolectando Investidura de las Esquirlas astilladas" }
+      ]
+    },
+    {
+      "id": "nalthis",
+      "name": "Sistema Nalthis",
+      "subtitle": "Nalthis",
+      "tagline": "El color es la fuente de todo poder",
+      "description": "Un mundo vibrante donde cada persona nace con un Aliento —una chispa de Investidura—. Los Retornados son dioses que vuelven de la muerte, sostenidos por el Aliento semanal de sus fieles.",
+      "shard": "Dotación (Endowment)",
+      "magic": "Despertar (BioLuz) · Retornados · Aliento",
+      "galacticPos": { "x": 4.2, "y": 0.2, "z": -3.5 },
+      "color": "#d47c4d",
+      "glowHex": 13928525,
+      "starType": "naranja",
+      "planets": [
+        { "id": "nalthis-p", "name": "Nalthis", "type": "nalthis", "radius": 0.48, "orbitRadius": 2.8, "orbitSpeed": 0.30, "color": "#c87840", "tilt": 6, "hasAtmosphere": true, "atmosphereColor": "#d49050", "hasClouds": true, "desc": "Un planeta de colores saturados donde el Despertar anima objetos. Hallandren es su ciudad de dioses Retornados." }
+      ],
+      "books": [
+        { "id": "nalthis-b1", "title": "El Aliento de los Dioses", "subtitle": "Warbreaker · Nalthis", "year": "2009", "color": "#3a1808", "pov": ["Siri","Vivenna","Lightsong","Vasher"], "summary": "La princesa Siri es enviada a casarse con el Rey-Dios de Hallandren. Vasher porta a Nightblood, una espada que consume Investidura y voluntades. Una historia de política divina, sacrificio e identidad." }
+      ],
+      "novellas": [],
+      "connections": [
+        { "targetId": "roshar", "label": "Nightblood en Roshar", "desc": "La espada viviente Nightblood viaja a Roshar, donde Szeth la porta" },
+        { "targetId": "roshar", "label": "Vasher / Zahel",       "desc": "Vasher, el Despertar más poderoso de Nalthis, vive exiliado en Roshar" }
+      ]
+    },
+    {
+      "id": "taldain",
+      "name": "Sistema Taldain",
+      "subtitle": "Taldain",
+      "tagline": "Dos soles, un mundo dividido",
+      "description": "Un planeta tidalmente bloqueado entre una enana blanca y una enana marrón. El Dayside es un desierto interminable donde la luz solar activa los poderes de los Sand Masters. La Esquirla Autonomía aisló este sistema.",
+      "shard": "Autonomía",
+      "magic": "Sand Mastery (Dominio de Arena)",
+      "galacticPos": { "x": 0.5, "y": -0.2, "z": -5.5 },
+      "color": "#d4c44d",
+      "glowHex": 13943885,
+      "starType": "binaria",
+      "planets": [
+        { "id": "taldain-p", "name": "Taldain", "type": "taldain", "radius": 0.50, "orbitRadius": 2.5, "orbitSpeed": 0.0, "color": "#c8a820", "tilt": 0, "hasAtmosphere": true, "atmosphereColor": "#d4b840", "isTidallyLocked": true, "desc": "Mundo dividido entre el eterno Dayside y el perpetuo Darkside. Los Sand Masters del lado diurno son sus guerreros mágicos." }
+      ],
+      "books": [
+        { "id": "taldain-b1", "title": "White Sand (Arena Blanca)", "subtitle": "Taldain · Novela Gráfica", "year": "2016", "color": "#3a2a08", "pov": ["Kenton","Khriss"], "summary": "Kenton, el Sand Master más débil, es el único superviviente de una masacre. Khriss, académica del Darkside, investiga la magia del desierto. Khriss se convierte en la mayor experta del Cosmere." }
+      ],
+      "novellas": [],
+      "connections": [
+        { "targetId": "scadrial", "label": "Autonomía interfiere", "desc": "Autonomía envía avatares a otros mundos, incluyendo Scadrial" },
+        { "targetId": "roshar",   "label": "Khriss documenta",     "desc": "Khriss, nativa de Taldain, viaja al Cosmere entero y escribe los ensayos de Arcanum Unbounded" }
+      ]
+    },
+    {
+      "id": "lumar",
+      "name": "Sistema Lumar",
+      "subtitle": "Lumar",
+      "tagline": "Los mares de esporas ocultan los secretos del éter",
+      "description": "Un mundo extraño rodeado de vastos mares compuestos por esporas de éter en lugar de agua. Doce lunas rodean el planeta, y los marineros navegan estos mares peculiares con habilidades únicas basadas en el éter. Hoid aparece aquí bajo el nombre de Ala.",
+      "shard": "Desconocida",
+      "magic": "Éter de esporas · Doce lunas",
+      "galacticPos": { "x": -6.5, "y": 0.8, "z": 3.2 },
+      "color": "#8a5fd4",
+      "glowHex": 9068500,
+      "starType": "violeta",
+      "planets": [
+        { "id": "lumar-p", "name": "Lumar", "type": "lumar", "radius": 0.50, "orbitRadius": 3.0, "orbitSpeed": 0.28, "color": "#5a3a9a", "tilt": 14, "hasAtmosphere": true, "atmosphereColor": "#7a5ac0", "hasMoon": true, "moonName": "Anchaimelaq", "moonOrbit": 0.9, "moonRadius": 0.08, "moonSpeed": 2.5, "hasExtraMoons": true, "desc": "Mundo rodeado de doce lunas y mares de esporas de éter. Los diferentes colores de éter otorgan distintos poderes." }
+      ],
+      "books": [
+        { "id": "lumar-b1", "title": "Trenza del Mar Esmeralda", "subtitle": "El Cosmere · Secreta Historia", "year": "2023", "color": "#2a1a4a", "pov": ["Tress","Hoid"], "summary": "Tress, una recolectora de tazas en la isla de Isla, parte al mar de esporas esmeraldas para rescatar a su amigo Charlie. Hoid narra la historia como personaje presente. Una historia de amor, magia de esporas y la naturaleza del miedo." }
+      ],
+      "novellas": [],
+      "connections": [
+        { "targetId": "roshar",   "label": "Hoid (Ala)",   "desc": "Hoid visita Lumar bajo el nombre de Ala, actuando como narrador de la historia de Tress" },
+        { "targetId": "scadrial", "label": "Ghostbloods", "desc": "La organización de los Ghostbloods tiene intereses activos en el sistema Lumar" }
+      ]
+    },
+    {
+      "id": "komashi",
+      "name": "Sistema Komashi",
+      "subtitle": "Komashi",
+      "tagline": "Los espíritus yoki-hijo danzan entre mundos",
+      "description": "Un mundo marcado por la energía lumínica y los espíritus llamados yoki-hijo. La Esquirla Virtuosismo fue fragmentada aquí, dejando una herida en la realidad que separa el mundo físico del espiritual.",
+      "shard": "Virtuosismo (fragmentada)",
+      "magic": "Yoki-hijo · Pintura de Pesadillas · Cambio de forma",
+      "galacticPos": { "x": 5.8, "y": 0.3, "z": 1.5 },
+      "color": "#d44d8a",
+      "glowHex": 13913482,
+      "starType": "rosada",
+      "planets": [
+        { "id": "komashi-p", "name": "Komashi", "type": "komashi", "radius": 0.48, "orbitRadius": 2.8, "orbitSpeed": 0.26, "color": "#8a1a4a", "tilt": 10, "hasAtmosphere": true, "atmosphereColor": "#c04080", "hasSpirits": true, "desc": "Mundo donde la energía lumínica separa el día de la noche de forma sobrenatural. Los yoki-hijo son espíritus que habitan pozos de lava." }
+      ],
+      "books": [
+        { "id": "komashi-b1", "title": "Yumi y el Pintor de Pesadillas", "subtitle": "El Cosmere · Secreta Historia", "year": "2023", "color": "#3a1028", "pov": ["Yumi","Nikaro"], "summary": "Yumi, una sagrada invocadora de espíritus, y Nikaro, un pintor de pesadillas sin talento, intercambian sus vidas en mundos opuestos. Una historia de identidad, amor y el sacrificio que requiere salvar a los demás." }
+      ],
+      "novellas": [],
+      "connections": [
+        { "targetId": "roshar", "label": "Odium fragmentó Virtuosismo", "desc": "Como en Sel, Odium destruyó la Esquirla de este mundo, dejando consecuencias permanentes" },
+        { "targetId": "sel",    "label": "Esquirlas fragmentadas",       "desc": "Komashi y Sel comparten el patrón de mundos cuyas Esquirlas fueron destruidas por Odium" }
+      ]
+    },
+    {
+      "id": "canticle",
+      "name": "Sistema Canticle",
+      "subtitle": "Canticle",
+      "tagline": "Bajo el sol eterno, ningún secreto sobrevive",
+      "description": "Un planeta abrasado por un sol extraordinariamente brillante. Los habitantes de Canticle sobreviven gracias a los Sunhearts —cristales que absorben el calor solar—. Sigzil, el Portador del Viento conocido como Nomad, llega aquí huyendo de una amenaza cósmica.",
+      "shard": "Desconocida",
+      "magic": "Sunhearts · Calor solar acumulado",
+      "galacticPos": { "x": 1.5, "y": -0.5, "z": 6.5 },
+      "color": "#d4804d",
+      "glowHex": 13926477,
+      "starType": "supergigante naranja",
+      "planets": [
+        { "id": "canticle-p", "name": "Canticle", "type": "canticle", "radius": 0.45, "orbitRadius": 2.2, "orbitSpeed": 0.35, "color": "#d07820", "tilt": 3, "hasAtmosphere": true, "atmosphereColor": "#e09040", "desc": "Planeta extremadamente caliente. Los Sunhearts son cristales vitales para sobrevivir bajo el sol abrasador." }
+      ],
+      "books": [
+        { "id": "canticle-b1", "title": "El Hombre Iluminado", "subtitle": "Sunlit Man · El Cosmere", "year": "2023", "color": "#3a1808", "pov": ["Sigzil (Nomad)"], "summary": "Sigzil, el ex-portador Radiante, viaja como Nomad entre mundos, siempre huyendo. En Canticle descubre a un pueblo que sobrevive bajo un sol mortal usando cristales solares. Una historia de redención y sacrificio, conectada al futuro lejano del Cosmere." }
+      ],
+      "novellas": [],
+      "connections": [
+        { "targetId": "roshar",   "label": "Sigzil / Nomad", "desc": "Sigzil fue Portador del Viento en Roshar antes de convertirse en el Nomad que viaja entre mundos" },
+        { "targetId": "scadrial", "label": "Era futura",     "desc": "El Hombre Iluminado ocurre en un futuro lejano, conectado con eventos de la Era 4 de Scadrial" }
+      ]
+    }
+  ]
+}

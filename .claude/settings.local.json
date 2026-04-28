@@ -4,7 +4,13 @@
       "Read(//c/tmp/**)",
       "Bash(mkdir -p cosmere_extract)",
       "Bash(gunzip -c \"C:\\\\Users\\\\jucar\\\\.claude\\\\projects\\\\C--Users-jucar-OneDrive-Documentos-SoftwareDevelopment-Cosmere-lat\\\\a2812cd3-2de6-4b16-8ccc-625fa2318232\\\\tool-results\\\\webfetch-1777302168237-tr0jm5.bin\")",
-      "Bash(tar -x -C cosmere_extract)"
+      "Bash(tar -x -C cosmere_extract)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(./node_modules/.bin/next build *)",
+      "Bash(git rm *)"
     ]
   }
 }
