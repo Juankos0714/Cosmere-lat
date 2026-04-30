@@ -7,6 +7,7 @@ import { GalaxyHeader } from '@/presentation/components/ui/GalaxyHeader'
 import { BackButton } from '@/presentation/components/ui/BackButton'
 import { SystemPanel } from '@/presentation/components/ui/SystemPanel'
 import { GalaxyMarkersOverlay } from '@/presentation/components/ui/GalaxyMarkersOverlay'
+import { HyperframesIntro } from '@/presentation/components/ui/HyperframesIntro'
 import { useSceneStore } from '@/presentation/stores/sceneStore'
 import { useUIStore } from '@/presentation/stores/uiStore'
 import { systemService } from '@/data/container'
@@ -67,6 +68,7 @@ export default function GalaxyPage() {
 
   return (
     <>
+      <HyperframesIntro />
       <CosmereCanvas />
 
       {/* Fixed UI overlay */}
