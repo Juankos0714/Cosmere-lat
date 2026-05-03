@@ -5,17 +5,20 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { STAR_VERT, STAR_FRAG } from '@/rendering/shaders/star.glsl'
 
-const STAR_COUNT = 10_000
-
 export function Starfield() {
   const matRef = useRef<THREE.ShaderMaterial>(null)
 
+  const starCount = useMemo(() => {
+    if (typeof window === 'undefined') return 10_000
+    return window.devicePixelRatio > 2 || window.innerWidth < 768 ? 6_000 : 10_000
+  }, [])
+
   const [positions, sizes, brights, colors] = useMemo(() => {
-    const pos = new Float32Array(STAR_COUNT * 3)
-    const sz  = new Float32Array(STAR_COUNT)
-    const br  = new Float32Array(STAR_COUNT)
-    const col = new Float32Array(STAR_COUNT * 3)
-    for (let i = 0; i < STAR_COUNT; i++) {
+    const pos = new Float32Array(starCount * 3)
+    const sz  = new Float32Array(starCount)
+    const br  = new Float32Array(starCount)
+    const col = new Float32Array(starCount * 3)
+    for (let i = 0; i < starCount; i++) {
       const th = Math.random() * Math.PI * 2
       const ph = Math.acos(2 * Math.random() - 1)
       const r  = 45 + Math.random() * 200
@@ -28,7 +31,7 @@ export function Starfield() {
       col[i * 3] = 0.82 + w * 0.18; col[i * 3 + 1] = 0.86 + w * 0.08; col[i * 3 + 2] = 1
     }
     return [pos, sz, br, col]
-  }, [])
+  }, [starCount])
 
   useFrame(({ clock }) => {
     if (matRef.current) matRef.current.uniforms['uTime']!.value = clock.getElapsedTime()

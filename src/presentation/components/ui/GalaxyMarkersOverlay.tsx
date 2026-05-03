@@ -10,11 +10,12 @@ interface Props {
 }
 
 function MarkerItem({
-  sys, x, y, onSelect,
+  sys, x, y, index, onSelect,
 }: {
   sys: System
   x: number
   y: number
+  index: number
   onSelect: () => void
 }) {
   const [hov, setHov] = useState(false)
@@ -47,6 +48,7 @@ function MarkerItem({
         transition: 'all .25s ease',
         boxShadow: `0 0 ${hov ? 24 : 12}px ${hex2rgba(sys.color, hov ? 0.55 : 0.3)}`,
         animation: hov ? 'none' : 'ringPulse 2.5s ease-in-out infinite',
+        animationDelay: `${index * 0.15}s`,
       }} />
       {/* Core dot */}
       <div style={{
@@ -124,29 +126,32 @@ function MarkerItem({
 
 export function GalaxyMarkersOverlay({ systems }: Props) {
   const markerPositions = useSceneStore(s => s.markerPositions)
-  const sceneState = useSceneStore(s => s.state)
-  const requestFlyTo = useSceneStore(s => s.requestFlyTo)
+  const sceneState      = useSceneStore(s => s.state)
+  const requestFlyTo    = useSceneStore(s => s.requestFlyTo)
 
   if (sceneState !== 'galaxy') return null
 
   const systemMap = new Map<string, System>(systems.map(s => [s.id as string, s]))
 
+  const visible = markerPositions.flatMap(pos => {
+    if (pos.behind) return []
+    const sys = systemMap.get(pos.id)
+    if (!sys) return []
+    return [{ pos, sys }]
+  })
+
   return (
     <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 50 }}>
-      {markerPositions.map(pos => {
-        if (pos.behind) return null
-        const sys = systemMap.get(pos.id)
-        if (!sys) return null
-        return (
-          <MarkerItem
-            key={pos.id}
-            sys={sys}
-            x={pos.x}
-            y={pos.y}
-            onSelect={() => requestFlyTo(sys.id, { x: 0, y: 11, z: 17 }, sys.galacticPos)}
-          />
-        )
-      })}
+      {visible.map(({ pos, sys }, index) => (
+        <MarkerItem
+          key={pos.id}
+          sys={sys}
+          x={pos.x}
+          y={pos.y}
+          index={index}
+          onSelect={() => requestFlyTo(sys.id, { x: 0, y: 11, z: 17 }, sys.galacticPos)}
+        />
+      ))}
     </div>
   )
 }

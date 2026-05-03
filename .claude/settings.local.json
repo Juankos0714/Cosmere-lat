@@ -15,7 +15,13 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('exports:', json.dumps\\(d.get\\('exports',{}\\), indent=2\\)[:2000]\\)\")",
       "Bash(npm info *)",
       "Bash(npx skills *)",
-      "Bash(npx hyperframes *)"
+      "Bash(npx hyperframes *)",
+      "Bash(rm -rf \"C:/Users/jucar/OneDrive/Documentos/SoftwareDevelopment/Cosmere-lat/hyperframes\")",
+      "Bash(rm -rf \"C:/Users/jucar/OneDrive/Documentos/SoftwareDevelopment/Cosmere-lat/public/hyperframes\")",
+      "Bash(rm -f \"C:/Users/jucar/OneDrive/Documentos/SoftwareDevelopment/Cosmere-lat/src/presentation/components/ui/HyperframesIntro.tsx\")",
+      "Bash(rm -f \"C:/Users/jucar/OneDrive/Documentos/SoftwareDevelopment/Cosmere-lat/skills-lock.json\")",
+      "Bash(grep -r \"hyperframe\" src/ public/ --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.html\")",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

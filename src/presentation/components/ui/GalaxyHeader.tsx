@@ -5,9 +5,8 @@ import { useUIStore } from '@/presentation/stores/uiStore'
 import { useSceneStore } from '@/presentation/stores/sceneStore'
 
 export function GalaxyHeader() {
-  const done      = useUIStore(s => s.loadingDone)
-  const openIntro = useUIStore(s => s.openIntro)
-  const visible   = useSceneStore(s => s.state === 'galaxy') && done
+  const done    = useUIStore(s => s.loadingDone)
+  const visible = useSceneStore(s => s.state === 'galaxy') && done
 
   return (
     <div style={{
@@ -30,24 +29,6 @@ export function GalaxyHeader() {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6, pointerEvents: 'all' }}>
-        <button
-          onClick={openIntro}
-          style={{
-            color: '#556677', fontSize: 10, letterSpacing: '.1em',
-            textTransform: 'uppercase', fontFamily: "'DM Sans',sans-serif",
-            padding: '6px 14px',
-            border: '1px solid rgba(100,140,200,.14)',
-            borderRadius: 6,
-            background: 'rgba(8,12,28,.5)',
-            backdropFilter: 'blur(8px)',
-            cursor: 'pointer',
-            transition: 'all .2s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#8899bb'; e.currentTarget.style.borderColor = 'rgba(100,140,200,.3)' }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#556677'; e.currentTarget.style.borderColor = 'rgba(100,140,200,.14)' }}
-        >
-          ▶ Intro
-        </button>
         <Link href="/fanarts" style={{
           color: '#446688', fontSize: 10, letterSpacing: '.1em',
           textTransform: 'uppercase', fontFamily: "'DM Sans',sans-serif",
