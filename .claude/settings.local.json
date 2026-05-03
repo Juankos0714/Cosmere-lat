@@ -21,7 +21,8 @@
       "Bash(rm -f \"C:/Users/jucar/OneDrive/Documentos/SoftwareDevelopment/Cosmere-lat/src/presentation/components/ui/HyperframesIntro.tsx\")",
       "Bash(rm -f \"C:/Users/jucar/OneDrive/Documentos/SoftwareDevelopment/Cosmere-lat/skills-lock.json\")",
       "Bash(grep -r \"hyperframe\" src/ public/ --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.html\")",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "WebFetch(domain:api.anthropic.com)"
     ]
   }
 }
