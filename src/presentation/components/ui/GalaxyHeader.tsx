@@ -29,6 +29,20 @@ export function GalaxyHeader() {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6, pointerEvents: 'all' }}>
+        <Link href="/imagenes" style={{
+          color: '#446688', fontSize: 10, letterSpacing: '.1em',
+          textTransform: 'uppercase', fontFamily: "'DM Sans',sans-serif",
+          textDecoration: 'none',
+          padding: '6px 14px',
+          border: '1px solid rgba(100,140,200,.2)',
+          borderRadius: 6,
+          background: 'rgba(8,12,28,.6)',
+          backdropFilter: 'blur(8px)',
+          transition: 'all .2s',
+          display: 'inline-block',
+        }}>
+          Imágenes
+        </Link>
         <Link href="/galeria" style={{
           color: '#446688', fontSize: 10, letterSpacing: '.1em',
           textTransform: 'uppercase', fontFamily: "'DM Sans',sans-serif",
