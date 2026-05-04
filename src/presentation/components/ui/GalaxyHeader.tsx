@@ -29,7 +29,7 @@ export function GalaxyHeader() {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6, pointerEvents: 'all' }}>
-        <Link href="/fanarts" style={{
+        <Link href="/galeria" style={{
           color: '#446688', fontSize: 10, letterSpacing: '.1em',
           textTransform: 'uppercase', fontFamily: "'DM Sans',sans-serif",
           textDecoration: 'none',
