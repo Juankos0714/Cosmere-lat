@@ -4,6 +4,18 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { hex2rgba } from '@/shared/lib/colors'
 
+const IMG_STORAGE_KEY = 'cosmere_images_v1'
+function useImageStore() {
+  const [store, setStore] = useState<Record<string, string>>({})
+  useEffect(() => {
+    try { setStore(JSON.parse(localStorage.getItem(IMG_STORAGE_KEY) ?? '{}')) } catch { /* ignore */ }
+  }, [])
+  return store
+}
+function imgUrl(store: Record<string, string>, cat: string, id: string) {
+  return store[`${cat}::${id}`]
+}
+
 // ── Palette ───────────────────────────────────────────────
 const WORLD_PALETTE: Record<string, { color: string; bg: string; name: string; star: string }> = {
   roshar:   { color: '#4d8fd4', bg: '#030c1e', name: 'Roshar',   star: 'Tanavast (Honor)' },
@@ -17,98 +29,99 @@ const WORLD_PALETTE: Record<string, { color: string; bg: string; name: string; s
   yolen:    { color: '#c8b880', bg: '#080808', name: 'Yolen',     star: 'Origen del Cosmere' },
 }
 
+interface Book { catalogId: string; title: string; year: number; series: string; desc: string }
+
 // ── Data ─────────────────────────────────────────────────
-const WORLDS = [
+const WORLDS: { id: string; books: Book[] }[] = [
   { id: 'roshar', books: [
-    { title: 'El Camino de los Reyes', year: 2010, series: 'Stormlight #1', desc: 'Kaladin cae a la esclavitud. Las Altas Tormentas barren Roshar mientras los Caballeros Radiantes regresan.' },
-    { title: 'Palabras Radiantes',     year: 2014, series: 'Stormlight #2', desc: 'Los Portadores del Vacío vuelven. Shallan llega a Urithiru. Kaladin jura el Tercer Ideal.' },
-    { title: 'Juramentada',            year: 2017, series: 'Stormlight #3', desc: 'La gran Desolación comienza. Dalinar une a los reyes. Odium revela su verdadero poder.' },
-    { title: 'El Ritmo de la Guerra',  year: 2020, series: 'Stormlight #4', desc: 'Urithiru cae. La Luz Siniestra emerge. Navani descubre los secretos del fabrialismo avanzado.' },
-    { title: 'Viento y Verdad',        year: 2024, series: 'Stormlight #5', desc: 'La conclusión de la primera mitad. El Cosmere cambia irrevocablemente. Szeth encuentra su camino.' },
-    { title: 'Edgedancer',             year: 2016, series: 'Novella',       desc: 'Lift busca al asesino de blanco mientras come todo lo que encuentra en la ciudad de Yeddaw.' },
-    { title: 'Dawnshard',              year: 2020, series: 'Novella',       desc: 'Rysn navega al continente prohibido de Aimia y descubre uno de los poderes primordiales del Cosmere.' },
+    { catalogId: 'camino',      title: 'El Camino de los Reyes', year: 2010, series: 'Stormlight #1', desc: 'Kaladin cae a la esclavitud. Las Altas Tormentas barren Roshar mientras los Caballeros Radiantes regresan.' },
+    { catalogId: 'palabras',    title: 'Palabras Radiantes',     year: 2014, series: 'Stormlight #2', desc: 'Los Portadores del Vacío vuelven. Shallan llega a Urithiru. Kaladin jura el Tercer Ideal.' },
+    { catalogId: 'juramentada', title: 'Juramentada',            year: 2017, series: 'Stormlight #3', desc: 'La gran Desolación comienza. Dalinar une a los reyes. Odium revela su verdadero poder.' },
+    { catalogId: 'ritmo',       title: 'El Ritmo de la Guerra',  year: 2020, series: 'Stormlight #4', desc: 'Urithiru cae. La Luz Siniestra emerge. Navani descubre los secretos del fabrialismo avanzado.' },
+    { catalogId: 'viento',      title: 'Viento y Verdad',        year: 2024, series: 'Stormlight #5', desc: 'La conclusión de la primera mitad. El Cosmere cambia irrevocablemente. Szeth encuentra su camino.' },
+    { catalogId: 'edgedancer',  title: 'Edgedancer',             year: 2016, series: 'Novella',       desc: 'Lift busca al asesino de blanco mientras come todo lo que encuentra en la ciudad de Yeddaw.' },
+    { catalogId: 'dawnshard',   title: 'Dawnshard',              year: 2020, series: 'Novella',       desc: 'Rysn navega al continente prohibido de Aimia y descubre uno de los poderes primordiales del Cosmere.' },
   ]},
   { id: 'scadrial', books: [
-    { title: 'El Imperio Final',        year: 2006, series: 'Mistborn Era 1 #1', desc: 'Kelsier y Vin roban el Imperio. El Lord Legislador lleva mil años en el trono.' },
-    { title: 'El Pozo de la Ascensión', year: 2007, series: 'Mistborn Era 1 #2', desc: 'El Imperio ha caído pero el verdadero enemigo despierta bajo Luthadel.' },
-    { title: 'El Héroe de las Eras',    year: 2008, series: 'Mistborn Era 1 #3', desc: 'El apocalipsis llega. Ruina es libre. Sazed busca en qué creer al final del mundo.' },
-    { title: 'Aleación de Ley',         year: 2011, series: 'Wax & Wayne #1',    desc: '300 años después. Wax, sheriff alomántico, regresa a la ciudad como heredero noble.' },
-    { title: 'Sombras de Identidad',    year: 2016, series: 'Wax & Wayne #2',    desc: 'Los Colmillos usan hemalurgia. Kelsier opera desde el Reino Cognitivo.' },
-    { title: 'Brazales de Duelo',       year: 2017, series: 'Wax & Wayne #3',    desc: 'Wax se enfrenta al Superviviente. Autonomía pone los ojos en Scadrial.' },
-    { title: 'El Metal Perdido',        year: 2022, series: 'Wax & Wayne #4',    desc: 'La Era 2 concluye. El viaje entre mundos se vuelve central por primera vez.' },
+    { catalogId: 'imperio',     title: 'El Imperio Final',        year: 2006, series: 'Mistborn Era 1 #1', desc: 'Kelsier y Vin roban el Imperio. El Lord Legislador lleva mil años en el trono.' },
+    { catalogId: 'pozo',        title: 'El Pozo de la Ascensión', year: 2007, series: 'Mistborn Era 1 #2', desc: 'El Imperio ha caído pero el verdadero enemigo despierta bajo Luthadel.' },
+    { catalogId: 'heroe',       title: 'El Héroe de las Eras',    year: 2008, series: 'Mistborn Era 1 #3', desc: 'El apocalipsis llega. Ruina es libre. Sazed busca en qué creer al final del mundo.' },
+    { catalogId: 'aleacion',    title: 'Aleación de Ley',         year: 2011, series: 'Wax & Wayne #1',    desc: '300 años después. Wax, sheriff alomántico, regresa a la ciudad como heredero noble.' },
+    { catalogId: 'sombras',     title: 'Sombras de Identidad',    year: 2016, series: 'Wax & Wayne #2',    desc: 'Los Colmillos usan hemalurgia. Kelsier opera desde el Reino Cognitivo.' },
+    { catalogId: 'brazales',    title: 'Brazales de Duelo',       year: 2017, series: 'Wax & Wayne #3',    desc: 'Wax se enfrenta al Superviviente. Autonomía pone los ojos en Scadrial.' },
+    { catalogId: 'metal',       title: 'El Metal Perdido',        year: 2022, series: 'Wax & Wayne #4',    desc: 'La Era 2 concluye. El viaje entre mundos se vuelve central por primera vez.' },
   ]},
   { id: 'sel', books: [
-    { title: 'Elantris',              year: 2005, series: 'Sel #1',  desc: 'La ciudad de dioses cayó. Raoden despierta transformado. Sarene llega a un reino en crisis.' },
-    { title: 'El Alma del Emperador', year: 2012, series: 'Novella', desc: 'Hugo Award. Shai, Forjadora del Alma, debe recrear la mente del Emperador en 100 días.' },
+    { catalogId: 'elantris',    title: 'Elantris',              year: 2005, series: 'Sel #1',  desc: 'La ciudad de dioses cayó. Raoden despierta transformado. Sarene llega a un reino en crisis.' },
+    { catalogId: 'emperor',     title: 'El Alma del Emperador', year: 2012, series: 'Novella', desc: 'Hugo Award. Shai, Forjadora del Alma, debe recrear la mente del Emperador en 100 días.' },
   ]},
   { id: 'nalthis', books: [
-    { title: 'El Aliento de los Dioses', year: 2009, series: 'Warbreaker', desc: 'Siri y Vivenna en la ciudad de los dioses Retornados. Vasher porta la espada que devora almas.' },
+    { catalogId: 'aliento',     title: 'El Aliento de los Dioses', year: 2009, series: 'Warbreaker', desc: 'Siri y Vivenna en la ciudad de los dioses Retornados. Vasher porta la espada que devora almas.' },
   ]},
   { id: 'taldain', books: [
-    { title: 'White Sand (Arena Blanca)', year: 2016, series: 'Novela Gráfica', desc: 'Kenton sobrevive a una masacre y lidera a los Sand Masters. Khriss investiga la magia del desierto.' },
+    { catalogId: 'whitesand',   title: 'White Sand (Arena Blanca)', year: 2016, series: 'Novela Gráfica', desc: 'Kenton sobrevive a una masacre y lidera a los Sand Masters. Khriss investiga la magia del desierto.' },
   ]},
   { id: 'lumar', books: [
-    { title: 'Trenza del Mar Esmeralda', year: 2023, series: 'Secretas Historia #1', desc: 'Tress cruza los mares de esporas para rescatar a Charlie. Hoid narra su propia historia.' },
+    { catalogId: 'trenza',      title: 'Trenza del Mar Esmeralda', year: 2023, series: 'Secretas Historia #1', desc: 'Tress cruza los mares de esporas para rescatar a Charlie. Hoid narra su propia historia.' },
   ]},
   { id: 'komashi', books: [
-    { title: 'Yumi y el Pintor de Pesadillas', year: 2023, series: 'Secretas Historia #2', desc: 'Una santa y un pintor sin talento intercambian mundos y vidas.' },
+    { catalogId: 'yumipaint',   title: 'Yumi y el Pintor de Pesadillas', year: 2023, series: 'Secretas Historia #2', desc: 'Una santa y un pintor sin talento intercambian mundos y vidas.' },
   ]},
   { id: 'canticle', books: [
-    { title: 'El Hombre Iluminado', year: 2023, series: 'Secretas Historia #3', desc: 'Sigzil/Nomad huye por el Cosmere y en Canticle encuentra su redención bajo un sol letal.' },
+    { catalogId: 'iluminado',   title: 'El Hombre Iluminado', year: 2023, series: 'Secretas Historia #3', desc: 'Sigzil/Nomad huye por el Cosmere y en Canticle encuentra su redención bajo un sol letal.' },
   ]},
 ]
 
 interface Character {
-  name: string; role: string; book: string; power: string; trait: string; arc: string
+  name: string; role: string; book: string; power: string; trait: string; arc: string; catalogId: string
 }
 const CHARACTERS: Record<string, Character[]> = {
   roshar: [
-    { name: 'Kaladin Stormblessed',  role: 'Protagonista · Portador del Viento',         book: 'Stormlight 1-5',    power: 'Gravedad y Vínculo · Luz de Tormenta',        trait: 'Protector compulsivo. Luchador eterno contra su propia oscuridad.',            arc: 'De esclavo de puentes a Cuarto Ideal y Portador del Viento.' },
-    { name: 'Dalinar Kholin',        role: 'El Unificador · Portador de la Bondad',       book: 'Stormlight 1-5',    power: 'Tesedor de Vínculos · Bondad',                trait: 'Antigua fiera de guerra transformada en estadista. Lleva el peso del mundo.',   arc: 'De conquistador brutal a garante del nuevo mundo.' },
-    { name: 'Shallan Davar',         role: 'Forjadora de Patrones · Tejedora de Luz',     book: 'Stormlight 1-5',    power: 'Ilusión · Transformación · Luz de Tormenta',  trait: 'Identidades fragmentadas. Dibujante obsesiva. Oculta trauma bajo humor.',       arc: 'Aprende a integrar sus fragmentos de personalidad en lugar de huir.' },
-    { name: 'Szeth-son-Neturo',      role: 'El Asesino de Blanco · Portador de la Verdad',book: 'Stormlight 1-5',    power: 'Gravedad · Lashings · Luz de Tormenta',       trait: 'Shin torturado por sus crímenes. Busca redención a través de la obediencia.',    arc: 'De asesino a la fuerza a guardián que elige por convicción.' },
-    { name: 'Navani Kholin',         role: 'Reina · Gran Investigadora',                  book: 'Stormlight 1-5',    power: 'Fabrialismo · Luz Siniestra · Dawnshard',     trait: 'Científica brillante en un mundo que subestima a las mujeres académicas.',      arc: 'De esposa del rey a arquitecta del nuevo conocimiento del Cosmere.' },
-    { name: 'Adolin Kholin',         role: 'Duelist · Príncipe',                          book: 'Stormlight 1-5',    power: 'Espadachín sin magia · Maya (Portadora viva)', trait: 'El hombre normal en una saga de héroes extraordinarios. Su normalidad es su fuerza.', arc: 'Devuelve la vida a un spren muerto con amistad pura, sin magia.' },
-    { name: 'Lift',                  role: 'La que no debe crecer',                        book: 'Edgedancer · Stormlight', power: 'Progresión · Convierte comida en Stormlight', trait: 'Roba comida y huye de crecer. La chica que eligió no olvidar al mundo.', arc: 'Aprende que querer a la gente no es debilidad.' },
-    { name: 'Venli',                 role: 'Traicionera arrepentida · Portadora del Despertar', book: 'Stormlight 3-5', power: 'Forma Iluminada · Despertar',             trait: 'Traicionó a su pueblo por ambición. Lidera su redención desde dentro.',         arc: 'De cómplice de la invasión a profetisa de la libertad reshi.' },
+    { catalogId: 'kaladin',   name: 'Kaladin Stormblessed',  role: 'Protagonista · Portador del Viento',         book: 'Stormlight 1-5',    power: 'Gravedad y Vínculo · Luz de Tormenta',        trait: 'Protector compulsivo. Luchador eterno contra su propia oscuridad.',            arc: 'De esclavo de puentes a Cuarto Ideal y Portador del Viento.' },
+    { catalogId: 'dalinar',   name: 'Dalinar Kholin',        role: 'El Unificador · Portador de la Bondad',       book: 'Stormlight 1-5',    power: 'Tesedor de Vínculos · Bondad',                trait: 'Antigua fiera de guerra transformada en estadista. Lleva el peso del mundo.',   arc: 'De conquistador brutal a garante del nuevo mundo.' },
+    { catalogId: 'shallan',   name: 'Shallan Davar',         role: 'Forjadora de Patrones · Tejedora de Luz',     book: 'Stormlight 1-5',    power: 'Ilusión · Transformación · Luz de Tormenta',  trait: 'Identidades fragmentadas. Dibujante obsesiva. Oculta trauma bajo humor.',       arc: 'Aprende a integrar sus fragmentos de personalidad en lugar de huir.' },
+    { catalogId: 'szeth',     name: 'Szeth-son-Neturo',      role: 'El Asesino de Blanco · Portador de la Verdad',book: 'Stormlight 1-5',    power: 'Gravedad · Lashings · Luz de Tormenta',       trait: 'Shin torturado por sus crímenes. Busca redención a través de la obediencia.',    arc: 'De asesino a la fuerza a guardián que elige por convicción.' },
+    { catalogId: 'navani',    name: 'Navani Kholin',         role: 'Reina · Gran Investigadora',                  book: 'Stormlight 1-5',    power: 'Fabrialismo · Luz Siniestra · Dawnshard',     trait: 'Científica brillante en un mundo que subestima a las mujeres académicas.',      arc: 'De esposa del rey a arquitecta del nuevo conocimiento del Cosmere.' },
+    { catalogId: 'adolin',    name: 'Adolin Kholin',         role: 'Duelist · Príncipe',                          book: 'Stormlight 1-5',    power: 'Espadachín sin magia · Maya (Portadora viva)', trait: 'El hombre normal en una saga de héroes extraordinarios. Su normalidad es su fuerza.', arc: 'Devuelve la vida a un spren muerto con amistad pura, sin magia.' },
+    { catalogId: 'lift',      name: 'Lift',                  role: 'La que no debe crecer',                        book: 'Edgedancer · Stormlight', power: 'Progresión · Convierte comida en Stormlight', trait: 'Roba comida y huye de crecer. La chica que eligió no olvidar al mundo.', arc: 'Aprende que querer a la gente no es debilidad.' },
+    { catalogId: 'venli',     name: 'Venli',                 role: 'Traicionera arrepentida · Portadora del Despertar', book: 'Stormlight 3-5', power: 'Forma Iluminada · Despertar',             trait: 'Traicionó a su pueblo por ambición. Lidera su redención desde dentro.',         arc: 'De cómplice de la invasión a profetisa de la libertad reshi.' },
   ],
   scadrial: [
-    { name: 'Kelsier',            role: 'El Superviviente · Señor de los Ladrones', book: 'Mistborn Era 1',  power: 'Alomancia completa · Inmortalidad cognitiva',   trait: 'Carismático hasta la manipulación. Ama a su equipo pero lo usa como piezas.',  arc: 'Muere y vuelve — primero como leyenda, luego como fuerza activa del Cosmere.' },
-    { name: 'Vin',                role: 'La Heroína de las Eras',                   book: 'Mistborn Era 1',  power: 'Alomancia completa · Bruma · Ruina/Preservación', trait: 'Creció en las sombras. Desconfía de todos. Aprende a amar y a confiar.',       arc: 'De ladrona de los bajos fondos a avatar de las Esquirlas y Heroína mítica.' },
-    { name: 'Sazed',              role: 'El Terrisano que se convirtió en dios',    book: 'Mistborn Era 1',  power: 'Feruquimia completa · Armonía (2 Esquirlas)',    trait: 'Estudioso humilde de religiones. Perdió su fe antes de ganarla toda.',         arc: 'Absorbe dos Esquirlas opuestas y lucha por mantener el equilibrio como Armonía.' },
-    { name: 'Elend Venture',      role: 'El Rey Filósofo',                          book: 'Mistborn Era 1-2', power: 'Alomancia (tardía) · Feruquimia (mínima)',      trait: 'Idealista que aprende que gobernar exige sangre además de principios.',        arc: 'De noble literario a rey-guerrero que carga con las decisiones imposibles.' },
-    { name: 'Waxillium Ladrian',  role: 'Sheriff · Heredero noble',                 book: 'Wax & Wayne',     power: 'Alomancia (hierro/acero) · Feruquimia (peso)',   trait: 'Hombre del orden en dos mundos: el salvaje Outer Ring y la alta sociedad.',    arc: 'Encuentra que identidad y deber pueden coexistir sin destruirse.' },
-    { name: 'Wayne',              role: 'El Cambiante · Ladrón regenerador',        book: 'Wax & Wayne',     power: 'Alomancia (bendalloy) · Feruquimia (salud)',     trait: 'Se disfraza de cualquier persona. Bromista que oculta profundo dolor y culpa.', arc: 'Su sacrificio final revela que siempre fue el más noble del equipo.' },
+    { catalogId: 'kelsier',   name: 'Kelsier',            role: 'El Superviviente · Señor de los Ladrones', book: 'Mistborn Era 1',  power: 'Alomancia completa · Inmortalidad cognitiva',   trait: 'Carismático hasta la manipulación. Ama a su equipo pero lo usa como piezas.',  arc: 'Muere y vuelve — primero como leyenda, luego como fuerza activa del Cosmere.' },
+    { catalogId: 'vin',       name: 'Vin',                role: 'La Heroína de las Eras',                   book: 'Mistborn Era 1',  power: 'Alomancia completa · Bruma · Ruina/Preservación', trait: 'Creció en las sombras. Desconfía de todos. Aprende a amar y a confiar.',       arc: 'De ladrona de los bajos fondos a avatar de las Esquirlas y Heroína mítica.' },
+    { catalogId: 'sazed',     name: 'Sazed',              role: 'El Terrisano que se convirtió en dios',    book: 'Mistborn Era 1',  power: 'Feruquimia completa · Armonía (2 Esquirlas)',    trait: 'Estudioso humilde de religiones. Perdió su fe antes de ganarla toda.',         arc: 'Absorbe dos Esquirlas opuestas y lucha por mantener el equilibrio como Armonía.' },
+    { catalogId: 'elend',     name: 'Elend Venture',      role: 'El Rey Filósofo',                          book: 'Mistborn Era 1-2', power: 'Alomancia (tardía) · Feruquimia (mínima)',      trait: 'Idealista que aprende que gobernar exige sangre además de principios.',        arc: 'De noble literario a rey-guerrero que carga con las decisiones imposibles.' },
+    { catalogId: 'wax',       name: 'Waxillium Ladrian',  role: 'Sheriff · Heredero noble',                 book: 'Wax & Wayne',     power: 'Alomancia (hierro/acero) · Feruquimia (peso)',   trait: 'Hombre del orden en dos mundos: el salvaje Outer Ring y la alta sociedad.',    arc: 'Encuentra que identidad y deber pueden coexistir sin destruirse.' },
+    { catalogId: 'wayne',     name: 'Wayne',              role: 'El Cambiante · Ladrón regenerador',        book: 'Wax & Wayne',     power: 'Alomancia (bendalloy) · Feruquimia (salud)',     trait: 'Se disfraza de cualquier persona. Bromista que oculta profundo dolor y culpa.', arc: 'Su sacrificio final revela que siempre fue el más noble del equipo.' },
   ],
   sel: [
-    { name: 'Raoden',  role: 'Príncipe · Rey de Elantris',    book: 'Elantris',              power: 'Aon Dor (restaurado)',              trait: 'Mantiene esperanza y liderazgo incluso transformado en muerto viviente.', arc: 'De príncipe perfecto a dios caído a restaurador de Elantris.' },
-    { name: 'Sarene',  role: 'Princesa diplomática',          book: 'Elantris',              power: 'Sin magia · Inteligencia política', trait: 'Letal en política. Rechaza el rol pasivo asignado a las mujeres de su época.', arc: 'Navega una conspiración política y salva a un reino sin poderes mágicos.' },
-    { name: 'Hrathen', role: 'El Gyorn conquistador',         book: 'Elantris',              power: 'Fe y retórica · Dakhor (implícito)', trait: 'El villano más humano: convencido de que hace el bien al conquistar almas.', arc: 'Su fe se quiebra y elige a las personas sobre la doctrina.' },
-    { name: 'Shai',    role: 'La Forjadora del Alma',         book: 'El Alma del Emperador', power: 'Sello del Alma · Forja de la Realidad', trait: 'La artista más grande del Cosmere. Ve la identidad como algo moldeable y real.', arc: 'Recrea el alma de un hombre y en el proceso define qué hace a una persona.' },
+    { catalogId: 'raoden',    name: 'Raoden',  role: 'Príncipe · Rey de Elantris',    book: 'Elantris',              power: 'Aon Dor (restaurado)',              trait: 'Mantiene esperanza y liderazgo incluso transformado en muerto viviente.', arc: 'De príncipe perfecto a dios caído a restaurador de Elantris.' },
+    { catalogId: 'sarene',    name: 'Sarene',  role: 'Princesa diplomática',          book: 'Elantris',              power: 'Sin magia · Inteligencia política', trait: 'Letal en política. Rechaza el rol pasivo asignado a las mujeres de su época.', arc: 'Navega una conspiración política y salva a un reino sin poderes mágicos.' },
+    { catalogId: 'shai',      name: 'Shai',    role: 'La Forjadora del Alma',         book: 'El Alma del Emperador', power: 'Sello del Alma · Forja de la Realidad', trait: 'La artista más grande del Cosmere. Ve la identidad como algo moldeable y real.', arc: 'Recrea el alma de un hombre y en el proceso define qué hace a una persona.' },
   ],
   nalthis: [
-    { name: 'Vivenna',   role: 'Princesa preparada · Despertar tardía',         book: 'Warbreaker',           power: 'Despertar · Control de cabello · Aliento',       trait: 'Rígida por educación. Se deshace y reconstruye en la ciudad que la consume.',  arc: 'Va a rescatar a su hermana y termina siendo quien necesita rescate y transformación.' },
-    { name: 'Siri',      role: 'La hermana enviada · Reina de dioses',          book: 'Warbreaker',           power: 'Mínima magia · Intuición social extraordinaria', trait: 'Libre y espontánea donde Vivenna era disciplinada. Sobrevive con simpatía genuina.', arc: 'Sobrevive a la corte divina siendo exactamente ella misma.' },
-    { name: 'Lightsong', role: 'El Dios que no cree en sí mismo',               book: 'Warbreaker',           power: 'Retornado · Visión profética · Aliento divino',  trait: 'Sarcástico, perezoso, cuestionador de todo. Especialmente de su propia divinidad.', arc: 'Su escepticismo lo hace el único con claridad para el sacrificio necesario.' },
-    { name: 'Vasher',    role: 'El Despertar más poderoso · Zahel en Roshar',   book: 'Warbreaker · Stormlight', power: 'Despertar avanzado · Comandante de Nightblood', trait: 'Peso devastador de siglos de vida y crímenes. Busca un lugar donde descansar.', arc: 'Abandona Nalthis y vive exiliado en Roshar, incapaz de dejar de luchar.' },
+    { catalogId: 'vivenna',   name: 'Vivenna',   role: 'Princesa preparada · Despertar tardía',         book: 'Warbreaker',           power: 'Despertar · Control de cabello · Aliento',       trait: 'Rígida por educación. Se deshace y reconstruye en la ciudad que la consume.',  arc: 'Va a rescatar a su hermana y termina siendo quien necesita rescate y transformación.' },
+    { catalogId: 'siri',      name: 'Siri',      role: 'La hermana enviada · Reina de dioses',          book: 'Warbreaker',           power: 'Mínima magia · Intuición social extraordinaria', trait: 'Libre y espontánea donde Vivenna era disciplinada. Sobrevive con simpatía genuina.', arc: 'Sobrevive a la corte divina siendo exactamente ella misma.' },
+    { catalogId: 'lightsong', name: 'Lightsong', role: 'El Dios que no cree en sí mismo',               book: 'Warbreaker',           power: 'Retornado · Visión profética · Aliento divino',  trait: 'Sarcástico, perezoso, cuestionador de todo. Especialmente de su propia divinidad.', arc: 'Su escepticismo lo hace el único con claridad para el sacrificio necesario.' },
+    { catalogId: 'vasher',    name: 'Vasher',    role: 'El Despertar más poderoso · Zahel en Roshar',   book: 'Warbreaker · Stormlight', power: 'Despertar avanzado · Comandante de Nightblood', trait: 'Peso devastador de siglos de vida y crímenes. Busca un lugar donde descansar.', arc: 'Abandona Nalthis y vive exiliado en Roshar, incapaz de dejar de luchar.' },
   ],
   lumar: [
-    { name: 'Tress', role: 'Recolectora de tazas · Heroína improbable', book: 'Trenza del Mar Esmeralda', power: 'Sin magia · Ingenio extraordinario · Sporas', trait: 'Modesta por convicción, no por inseguridad. La persona más lista de su historia.', arc: 'Sale de su isla por amor y descubre que siempre fue extraordinaria.' },
+    { catalogId: 'tress',     name: 'Tress', role: 'Recolectora de tazas · Heroína improbable', book: 'Trenza del Mar Esmeralda', power: 'Sin magia · Ingenio extraordinario · Sporas', trait: 'Modesta por convicción, no por inseguridad. La persona más lista de su historia.', arc: 'Sale de su isla por amor y descubre que siempre fue extraordinaria.' },
   ],
   komashi: [
-    { name: 'Yumi',   role: 'La Santa Elegida · Invocadora de espíritus', book: 'Yumi y el Pintor', power: 'Invocación de yoki-hijo · Sacrificio ritual', trait: 'Carga el mundo de sus espaldas desde niña. Nunca ha elegido nada por sí misma.', arc: 'Aprende que merecimiento y sacrificio no son la misma cosa.' },
-    { name: 'Nikaro', role: 'El Pintor sin talento · Nikolin',             book: 'Yumi y el Pintor', power: 'Pintura de Pesadillas (latente)',             trait: 'Farsante brillante. Su mayor poder es que nadie lo ve venir.',                  arc: 'Descubre que su "falta de talento" era el don más necesario para salvar su mundo.' },
+    { catalogId: 'yumi',      name: 'Yumi',   role: 'La Santa Elegida · Invocadora de espíritus', book: 'Yumi y el Pintor', power: 'Invocación de yoki-hijo · Sacrificio ritual', trait: 'Carga el mundo de sus espaldas desde niña. Nunca ha elegido nada por sí misma.', arc: 'Aprende que merecimiento y sacrificio no son la misma cosa.' },
+    { catalogId: 'nikaro',    name: 'Nikaro', role: 'El Pintor sin talento · Nikolin',             book: 'Yumi y el Pintor', power: 'Pintura de Pesadillas (latente)',             trait: 'Farsante brillante. Su mayor poder es que nadie lo ve venir.',                  arc: 'Descubre que su "falta de talento" era el don más necesario para salvar su mundo.' },
   ],
 }
 
 interface Worldhopper {
-  name: string; realName: string; origin: string; accent: string; bg: string
+  catalogId: string; name: string; realName: string; origin: string; accent: string; bg: string
   role: string; magic: string; appearances: { world: string; alias: string; role: string }[]
   mystery: string; quote: string
 }
 const WORLDHOPPERS: Worldhopper[] = [
   {
-    name: 'Hoid / Wit / Cephandrius', realName: 'Desconocido', origin: 'Yolen',
+    catalogId: 'hoid-wit', name: 'Hoid / Wit / Cephandrius', realName: 'Desconocido', origin: 'Yolen',
     accent: '#c8b880', bg: '#06060a', role: 'El Eterno Testigo',
     magic: 'Alomancia · Despertar · Cantamundos · Surgebinding · Sello del Alma · y más',
     appearances: [
@@ -123,7 +136,7 @@ const WORLDHOPPERS: Worldhopper[] = [
     quote: '"He vivido durante siglos y lo único que he aprendido es que las personas como tú —las que se preocupan— son las más peligrosas de todas."',
   },
   {
-    name: 'Kelsier el Superviviente', realName: 'Kelsier', origin: 'Scadrial',
+    catalogId: 'kelsier-late', name: 'Kelsier el Superviviente', realName: 'Kelsier', origin: 'Scadrial',
     accent: '#d4804d', bg: '#0e0400', role: 'El Inmortal Involuntario',
     magic: 'Alomancia completa · Existencia cognitiva · Conexión entre mundos',
     appearances: [
@@ -134,7 +147,7 @@ const WORLDHOPPERS: Worldhopper[] = [
     quote: '"Sobrevivir no es suficiente. Tienes que vivir."',
   },
   {
-    name: 'Vasher / Zahel', realName: 'Vasher', origin: 'Nalthis',
+    catalogId: 'vasher-roshar', name: 'Vasher / Zahel', realName: 'Vasher', origin: 'Nalthis',
     accent: '#d47c4d', bg: '#140600', role: 'El Exiliado de Siglos',
     magic: 'Despertar maestro · Portador de Nightblood · Sustentado por Stormlight en Roshar',
     appearances: [
@@ -145,7 +158,7 @@ const WORLDHOPPERS: Worldhopper[] = [
     quote: '"Cometí un error hace mucho tiempo. Algunas personas llaman a eso genio."',
   },
   {
-    name: 'Khriss', realName: 'Khrissalla', origin: 'Taldain (Darkside)',
+    catalogId: 'khriss', name: 'Khriss', realName: 'Khrissalla', origin: 'Taldain (Darkside)',
     accent: '#d4c44d', bg: '#080600', role: 'La Gran Estudiosa del Cosmere',
     magic: 'Sin magia · Conocimiento enciclopédico de la Investidura',
     appearances: [
@@ -156,7 +169,7 @@ const WORLDHOPPERS: Worldhopper[] = [
     quote: '"La Investidura no entiende de lealtades. Es una fuerza, como la gravedad. La pregunta es quién la sostiene."',
   },
   {
-    name: 'Nazh', realName: 'Nazrilof', origin: 'Threnody',
+    catalogId: 'nazh', name: 'Nazh', realName: 'Nazrilof', origin: 'Threnody',
     accent: '#9090c8', bg: '#04040e', role: 'El Agente de Khriss',
     magic: 'Resistencia a las Sombras · Habilidad innata de Threnody',
     appearances: [
@@ -234,7 +247,7 @@ function drawWorldhopperCard(canvas: HTMLCanvasElement, wh: Worldhopper) {
 }
 
 // ── Sub-components ────────────────────────────────────────
-function BookCard({ book, world, index }: { book: { title: string; year: number; series: string; desc: string }; world: string; index: number }) {
+function BookCard({ book, world, index, imageUrl }: { book: Book; world: string; index: number; imageUrl?: string | undefined }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hov, setHov] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -261,12 +274,13 @@ function BookCard({ book, world, index }: { book: { title: string; year: number;
     >
       <div style={{ position: 'relative', height: 160, overflow: 'hidden' }}>
         <canvas ref={canvasRef} width={320} height={240} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%,rgba(5,5,10,.9))' }} />
-        <div style={{ position: 'absolute', bottom: 10, left: 14 }}>
+        {imageUrl && <img src={imageUrl} alt={book.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1 }} />}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%,rgba(5,5,10,.9))', zIndex: 2 }} />
+        <div style={{ position: 'absolute', bottom: 10, left: 14, zIndex: 3 }}>
           <div style={{ color: pal.color, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 2, opacity: .8 }}>{book.series}</div>
           <div style={{ color: '#f0e8d8', fontSize: 13, fontFamily: 'var(--font-cinzel,"Cinzel",serif)', fontWeight: 700, lineHeight: 1.25, textShadow: '0 1px 4px rgba(0,0,0,.8)' }}>{book.title}</div>
         </div>
-        <div style={{ position: 'absolute', top: 10, right: 10, color: hex2rgba(pal.color,.7), fontSize: 9 }}>{book.year}</div>
+        <div style={{ position: 'absolute', top: 10, right: 10, color: hex2rgba(pal.color,.7), fontSize: 9, zIndex: 3 }}>{book.year}</div>
       </div>
       <div style={{ padding: '12px 14px', maxHeight: expanded ? 200 : 0, overflow: 'hidden', transition: 'max-height .3s ease' }}>
         <p style={{ color: '#8899bb', fontSize: 11.5, lineHeight: 1.65 }}>{book.desc}</p>
@@ -276,7 +290,7 @@ function BookCard({ book, world, index }: { book: { title: string; year: number;
   )
 }
 
-function CharacterCard({ char, world, index }: { char: Character; world: string; index: number }) {
+function CharacterCard({ char, world, index, imageUrl }: { char: Character; world: string; index: number; imageUrl?: string | undefined }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hov, setHov] = useState(false)
   const [open, setOpen] = useState(false)
@@ -303,8 +317,9 @@ function CharacterCard({ char, world, index }: { char: Character; world: string;
     >
       <div style={{ position: 'relative', height: 180, overflow: 'hidden' }}>
         <canvas ref={canvasRef} width={320} height={280} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 40%,rgba(8,10,20,.95))' }} />
-        <div style={{ position: 'absolute', bottom: 10, left: 14, right: 14 }}>
+        {imageUrl && <img src={imageUrl} alt={char.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1 }} />}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 40%,rgba(8,10,20,.95))', zIndex: 2 }} />
+        <div style={{ position: 'absolute', bottom: 10, left: 14, right: 14, zIndex: 3 }}>
           <div style={{ color: pal.color, fontSize: 8.5, letterSpacing: '.1em', textTransform: 'uppercase', opacity: .8, marginBottom: 2 }}>{char.book}</div>
           <div style={{ color: '#f0e8d8', fontSize: 14, fontFamily: 'var(--font-cinzel,"Cinzel",serif)', fontWeight: 700 }}>{char.name}</div>
           <div style={{ color: '#7788aa', fontSize: 10, marginTop: 2, fontStyle: 'italic' }}>{char.role}</div>
@@ -329,7 +344,7 @@ function CharacterCard({ char, world, index }: { char: Character; world: string;
   )
 }
 
-function WorldSection({ worldId, books }: { worldId: string; books: { title: string; year: number; series: string; desc: string }[] }) {
+function WorldSection({ worldId, books, store }: { worldId: string; books: Book[]; store: Record<string, string> }) {
   const pal = WORLD_PALETTE[worldId] || { color: '#c8b880', name: worldId, star: '' }
   const [open, setOpen] = useState(true)
   return (
@@ -344,14 +359,14 @@ function WorldSection({ worldId, books }: { worldId: string; books: { title: str
       </div>
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16 }}>
-          {books.map((b, i) => <BookCard key={b.title} book={b} world={worldId} index={i} />)}
+          {books.map((b, i) => <BookCard key={b.title} book={b} world={worldId} index={i} imageUrl={imgUrl(store, 'libros', b.catalogId)} />)}
         </div>
       )}
     </div>
   )
 }
 
-function WorldhopperCard({ wh, index }: { wh: Worldhopper; index: number }) {
+function WorldhopperCard({ wh, index, imageUrl }: { wh: Worldhopper; index: number; imageUrl?: string | undefined }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hov, setHov] = useState(false)
   const [open, setOpen] = useState(false)
@@ -377,8 +392,9 @@ function WorldhopperCard({ wh, index }: { wh: Worldhopper; index: number }) {
     >
       <div style={{ position: 'relative', height: 200, overflow: 'hidden' }}>
         <canvas ref={canvasRef} width={400} height={280} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 35%,rgba(5,5,12,.95))' }} />
-        <div style={{ position: 'absolute', bottom: 14, left: 18, right: 18 }}>
+        {imageUrl && <img src={imageUrl} alt={wh.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1 }} />}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 35%,rgba(5,5,12,.95))', zIndex: 2 }} />
+        <div style={{ position: 'absolute', bottom: 14, left: 18, right: 18, zIndex: 3 }}>
           <div style={{ color: wh.accent, fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', marginBottom: 4, opacity: .8 }}>{wh.origin} · {wh.appearances.length} mundos visitados</div>
           <h3 style={{ color: '#f0e8d8', fontSize: 18, fontFamily: 'var(--font-cinzel,"Cinzel",serif)', fontWeight: 700, lineHeight: 1.2 }}>{wh.name}</h3>
           <div style={{ color: '#7788aa', fontSize: 11, marginTop: 4, fontStyle: 'italic' }}>{wh.role}</div>
@@ -427,6 +443,8 @@ function HoidSection() {
   const hoid = WORLDHOPPERS[0]!
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [tab, setTab] = useState<'mundos' | 'magia' | 'misterio'>('mundos')
+  const store = useImageStore()
+  const hoidImageUrl = imgUrl(store, 'hoid', hoid.catalogId)
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -447,10 +465,11 @@ function HoidSection() {
       <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', marginBottom: 32, background: '#030308', border: `1px solid ${hex2rgba(hoid.accent,.3)}`, boxShadow: `0 0 60px ${hex2rgba(hoid.accent,.1)},0 20px 60px rgba(0,0,0,.6)` }}>
         <div style={{ height: 280, position: 'relative' }}>
           <canvas ref={canvasRef} width={1200} height={400} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(3,3,8,0) 40%, rgba(3,3,8,.95) 75%)' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 30%, rgba(3,3,8,.98))' }} />
+          {hoidImageUrl && <img src={hoidImageUrl} alt="Hoid" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1 }} />}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(3,3,8,0) 40%, rgba(3,3,8,.95) 75%)', zIndex: 2 }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 30%, rgba(3,3,8,.98))', zIndex: 2 }} />
         </div>
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 160, width: '45%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 40px' }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 160, width: '45%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 40px', zIndex: 3 }}>
           <div style={{ color: hoid.accent, fontSize: 9, letterSpacing: '.22em', textTransform: 'uppercase', marginBottom: 10, opacity: .8 }}>YOLEN · EL VIAJERO ETERNO</div>
           <h1 style={{ color: '#f5efe0', fontSize: 38, fontFamily: 'var(--font-cinzel,"Cinzel",serif)', fontWeight: 900, letterSpacing: '.08em', margin: '0 0 8px', textShadow: `0 0 40px ${hex2rgba(hoid.accent,.4)}` }}>HOID</h1>
           <div style={{ color: '#7788aa', fontSize: 13, fontStyle: 'italic', marginBottom: 20, lineHeight: 1.5 }}>Cephandrius Maxtori · Wit · Ala · Drifter · Malasei</div>
@@ -536,6 +555,7 @@ function HoidSection() {
 
 function CharactersSection() {
   const [world, setWorld] = useState('roshar')
+  const store = useImageStore()
   const worlds = Object.keys(CHARACTERS)
   return (
     <div>
@@ -552,7 +572,7 @@ function CharactersSection() {
         })}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 18 }}>
-        {(CHARACTERS[world] || []).map((char, i) => <CharacterCard key={char.name} char={char} world={world} index={i} />)}
+        {(CHARACTERS[world] || []).map((char, i) => <CharacterCard key={char.name} char={char} world={world} index={i} imageUrl={imgUrl(store, 'personajes', char.catalogId)} />)}
       </div>
     </div>
   )
@@ -589,6 +609,7 @@ const TITLES: Record<SectionId, string> = {
 
 export default function GaleriaPage() {
   const [section, setSection] = useState<SectionId>('hoid')
+  const store = useImageStore()
 
   return (
     <div style={{ minHeight: '100vh', background: '#010306', overflowY: 'auto', overflowX: 'hidden' }}>
@@ -616,14 +637,14 @@ export default function GaleriaPage() {
         <div style={{ padding: '36px 40px 80px' }}>
           {section === 'hoid' && <HoidSection />}
           {section === 'libros' && (
-            <div>{WORLDS.map(w => <WorldSection key={w.id} worldId={w.id} books={w.books} />)}</div>
+            <div>{WORLDS.map(w => <WorldSection key={w.id} worldId={w.id} books={w.books} store={store} />)}</div>
           )}
           {section === 'personajes' && <CharactersSection />}
           {section === 'saltamundo' && (
             <div>
               <p style={{ color: '#445566', fontSize: 12, marginBottom: 28, maxWidth: 600, lineHeight: 1.7 }}>Los Saltamundo son personas que han descubierto cómo cruzar el Cosmere entre mundos, generalmente a través del Reino Cognitivo. Son raros, peligrosos, y casi todos guardan secretos que podrían reescribir la historia.</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: 20 }}>
-                {WORLDHOPPERS.slice(1).map((wh, i) => <WorldhopperCard key={wh.name} wh={wh} index={i} />)}
+                {WORLDHOPPERS.slice(1).map((wh, i) => <WorldhopperCard key={wh.name} wh={wh} index={i} imageUrl={imgUrl(store, 'saltamundo', wh.catalogId)} />)}
               </div>
             </div>
           )}
