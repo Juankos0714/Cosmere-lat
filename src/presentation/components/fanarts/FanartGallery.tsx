@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { Fanart } from '@/domain/entities/Fanart'
 import type { System } from '@/domain/entities/System'
 import { FanartCard } from './FanartCard'
 import { FanartLightbox } from './FanartLightbox'
+import { FanartUploadModal } from './FanartUploadModal'
 import { hex2rgba } from '@/shared/lib/colors'
 
 interface Props {
@@ -15,14 +16,15 @@ interface Props {
 export function FanartGallery({ fanarts, systems }: Props) {
   const [filter, setFilter] = useState<string | null>(null)
   const [selected, setSelected] = useState<Fanart | null>(null)
+  const [showUpload, setShowUpload] = useState(false)
 
   const filtered = filter ? fanarts.filter(f => f.systemId === filter) : fanarts
   const systemMap = new Map(systems.map(s => [s.id, s]))
 
   return (
     <>
-      {/* Filter bar */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+      {/* Filter bar + upload button */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28, alignItems: 'center' }}>
         <button
           onClick={() => setFilter(null)}
           style={{
@@ -57,6 +59,17 @@ export function FanartGallery({ fanarts, systems }: Props) {
             </button>
           )
         })}
+        <button
+          onClick={() => setShowUpload(true)}
+          style={{
+            marginLeft: 'auto', padding: '5px 14px', borderRadius: 20, fontSize: 10,
+            letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer',
+            background: 'rgba(77,143,212,.08)', border: '1px solid rgba(77,143,212,.25)',
+            color: '#4d8fd4', transition: 'all .18s', whiteSpace: 'nowrap',
+          }}
+        >
+          + Subir
+        </button>
       </div>
 
       {/* Grid */}
@@ -86,6 +99,14 @@ export function FanartGallery({ fanarts, systems }: Props) {
           fanart={selected}
           system={systemMap.get(selected.systemId)}
           onClose={() => setSelected(null)}
+        />
+      )}
+
+      {showUpload && (
+        <FanartUploadModal
+          systems={systems}
+          onClose={() => setShowUpload(false)}
+          onUploaded={() => setShowUpload(false)}
         />
       )}
     </>
