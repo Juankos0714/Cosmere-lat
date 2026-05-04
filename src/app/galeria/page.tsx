@@ -606,8 +606,9 @@ export default function GaleriaPage() {
             <h1 style={{ color: '#c8b880', fontSize: 14, fontFamily: 'var(--font-cinzel,"Cinzel",serif)', fontWeight: 600, letterSpacing: '.06em' }}>{TITLES[section]}</h1>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <Link href="/guia" style={{ color: '#445566', fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', textDecoration: 'none' }}>Guía de Lectura</Link>
-            <Link href="/"    style={{ color: '#445566', fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', textDecoration: 'none' }}>↗ Atlas</Link>
+            <Link href="/guia"     style={{ color: '#445566', fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', textDecoration: 'none' }}>Guía de Lectura</Link>
+            <Link href="/imagenes" style={{ color: '#445566', fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', textDecoration: 'none' }}>Imágenes</Link>
+            <Link href="/"         style={{ color: '#445566', fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', textDecoration: 'none' }}>↗ Atlas</Link>
           </div>
         </div>
 
