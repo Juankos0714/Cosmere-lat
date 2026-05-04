@@ -23,7 +23,16 @@
       "Bash(grep -r \"hyperframe\" src/ public/ --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.html\")",
       "Bash(echo \"exit: $?\")",
       "WebFetch(domain:api.anthropic.com)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(Get-Content \"C:\\\\Users\\\\jucar\\\\.claude\\\\projects\\\\C--Users-jucar-OneDrive-Documentos-SoftwareDevelopment-Cosmere-lat\\\\695c325b-c0ac-4b4e-99a8-cf24315b3571.jsonl\")",
+      "Bash(Select-Object -Last 100)",
+      "PowerShell($content = Get-Content \"C:\\\\Users\\\\jucar\\\\.claude\\\\projects\\\\C--Users-jucar-OneDrive-Documentos-SoftwareDevelopment-Cosmere-lat\\\\695c325b-c0ac-4b4e-99a8-cf24315b3571.jsonl\" -Tail 5; $content | ForEach-Object { $_ | ConvertFrom-Json | Select-Object -ExpandProperty message | Select-Object role, @{n='text';e={$_.content | Where-Object {$_.type -eq 'text'} | Select-Object -ExpandProperty text | Select-Object -First 1}} } 2>$null)",
+      "PowerShell($lines = Get-Content \"C:\\\\Users\\\\jucar\\\\.claude\\\\projects\\\\C--Users-jucar-OneDrive-Documentos-SoftwareDevelopment-Cosmere-lat\\\\695c325b-c0ac-4b4e-99a8-cf24315b3571.jsonl\" -Tail 3; foreach \\($line in $lines\\) { $obj = $line | ConvertFrom-Json; $role = $obj.message.role; $content = $obj.message.content; Write-Host \"ROLE: $role\"; if \\($content -is [array]\\) { foreach \\($item in $content\\) { if \\($item.type -eq 'text'\\) { Write-Host \\($item.text | Select-Object -First 500\\) } } } })",
+      "PowerShell(git *)",
+      "PowerShell(cd \"C:\\\\Users\\\\jucar\\\\OneDrive\\\\Documentos\\\\SoftwareDevelopment\\\\Cosmere-lat\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"guia\" })",
+      "PowerShell(cd \"C:\\\\Users\\\\jucar\\\\OneDrive\\\\Documentos\\\\SoftwareDevelopment\\\\Cosmere-lat\"; $out = npx tsc --noEmit 2>&1; $out | ForEach-Object { $_.ToString\\(\\) } | Where-Object { $_ -match \"guia\" })",
+      "PowerShell(cd \"C:\\\\Users\\\\jucar\\\\OneDrive\\\\Documentos\\\\SoftwareDevelopment\\\\Cosmere-lat\"; npx tsc --noEmit 2>&1 | Out-String | Select-String \"guia\" -AllMatches | ForEach-Object { $_.Line })",
+      "PowerShell(cd \"C:\\\\Users\\\\jucar\\\\OneDrive\\\\Documentos\\\\SoftwareDevelopment\\\\Cosmere-lat\"; $r = & npx tsc --noEmit 2>&1; $r | ForEach-Object { \"$_\" } | Where-Object { $_ -match \"guia\" }; \"Exit: $LASTEXITCODE\")"
     ]
   }
 }
