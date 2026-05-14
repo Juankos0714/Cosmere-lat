@@ -9,835 +9,653 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    html,body{width:100%;min-height:100%;background:#010306;color:#e0d8c8;font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-    ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(100,140,200,.2);border-radius:2px;}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+    html,body{width:100%;min-height:100%;background:#010306;color:#e0d8c8;font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(100,140,200,.2);border-radius:3px;}
+
+    /* Curvas globales para todos los elementos interactivos */
+    a, button, input { transition: color .25s ease, background .25s ease, border-color .25s ease, transform .25s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, opacity .25s ease; }
+    img { will-change: transform; }
+
+    @keyframes fadeUp{
+      0%{opacity:0;transform:translateY(20px) scale(.985);filter:blur(2px);}
+      60%{opacity:1;filter:blur(0);}
+      100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}
+    }
     @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-    @keyframes shimmer{0%{background-position:-200% center;}100%{background-position:200% center;}}
-    @keyframes glow{0%,100%{opacity:.6;}50%{opacity:1;}}
-    @keyframes slideRight{from{transform:translateX(-24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+    @keyframes fadeInScale{
+      from{opacity:0;transform:scale(.96);}
+      to{opacity:1;transform:scale(1);}
+    }
+    @keyframes modalIn{
+      0%{opacity:0;transform:translateY(28px) scale(.94);filter:blur(6px);}
+      60%{opacity:1;filter:blur(0);}
+      100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}
+    }
+    @keyframes backdropIn{
+      from{opacity:0;backdrop-filter:blur(0);}
+      to{opacity:1;backdrop-filter:blur(14px);}
+    }
+    @keyframes slideInLeft{
+      from{opacity:0;transform:translateX(-16px);}
+      to{opacity:1;transform:translateX(0);}
+    }
+    @keyframes pulse{0%,100%{opacity:.55;transform:scale(1);}50%{opacity:1;transform:scale(1.05);}}
+    @keyframes shimmer{
+      0%{background-position:-200% 0;}
+      100%{background-position:200% 0;}
+    }
+    @keyframes float{
+      0%,100%{transform:translateY(0);}
+      50%{transform:translateY(-3px);}
+    }
+    @keyframes glow{
+      0%,100%{box-shadow:0 0 20px rgba(200,184,128,.15);}
+      50%{box-shadow:0 0 40px rgba(200,184,128,.35);}
+    }
+
+    /* Respeta preferencia de movimiento reducido */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback, useMemo } = React;
+const { useState, useEffect, useMemo } = React;
 
-// ── Colors ────────────────────────────────────────────────
+// ── Storage ───────────────────────────────────────────────
+const STORAGE_KEY = 'cosmere_images_v1';
+function loadImgs() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch { return {}; } }
+const ikey = (cat,id) => `${cat}::${id}`;
+
+// ── Palettes ──────────────────────────────────────────────
+const P = {
+  roshar:  {c:'#4d8fd4', bg:'#030c1e', name:'Roshar'},
+  scadrial:{c:'#c8a855', bg:'#120a00', name:'Scadrial'},
+  sel:     {c:'#7cba65', bg:'#021004', name:'Sel'},
+  nalthis: {c:'#d47c4d', bg:'#180800', name:'Nalthis'},
+  taldain: {c:'#d4c44d', bg:'#0c0a00', name:'Taldain'},
+  lumar:   {c:'#8a5fd4', bg:'#05020e', name:'Lumar'},
+  komashi: {c:'#d44d8a', bg:'#0e0208', name:'Komashi'},
+  canticle:{c:'#d4804d', bg:'#140800', name:'Canticle'},
+  yolen:   {c:'#c8b880', bg:'#080808', name:'Yolen'},
+};
 const rgba = (hex,a) => {
   if(!hex||hex.length<7) return `rgba(128,128,128,${a})`;
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return `rgba(${r},${g},${b},${a})`;
 };
 
-const WORLD_PALETTE = {
-  roshar:  { color:'#4d8fd4', bg:'#030c1e', name:'Roshar',  star:'Tanavast (Honor)' },
-  scadrial:{ color:'#c8a855', bg:'#0e0800', name:'Scadrial', star:'Leras (Preservación)' },
-  sel:     { color:'#7cba65', bg:'#030e04', name:'Sel',      star:'Aona (Devoción)' },
-  nalthis: { color:'#d47c4d', bg:'#160800', name:'Nalthis',  star:'Edgli (Dotación)' },
-  taldain: { color:'#d4c44d', bg:'#0a0800', name:'Taldain',  star:'Autonomía' },
-  lumar:   { color:'#8a5fd4', bg:'#04020e', name:'Lumar',    star:'Desconocida' },
-  komashi: { color:'#d44d8a', bg:'#0e0208', name:'Komashi',  star:'Virtuosismo' },
-  canticle:{ color:'#d4804d', bg:'#140800', name:'Canticle', star:'Desconocida' },
-  yolen:   { color:'#c8b880', bg:'#080808', name:'Yolen',    star:'Origen del Cosmere' },
-};
-
-// ── SECCIONES ────────────────────────────────────────────
-// 1. LIBROS POR PLANETA
-const WORLDS = [
-  {
-    id:'roshar', books:[
-      { title:'El Camino de los Reyes', year:2010, series:'Stormlight #1', desc:'Kaladin cae a la esclavitud. Las Altas Tormentas barren Roshar mientras los Caballeros Radiantes regresan.' },
-      { title:'Palabras Radiantes',     year:2014, series:'Stormlight #2', desc:'Los Portadores del Vacío vuelven. Shallan llega a Urithiru. Kaladin jura el Tercer Ideal.' },
-      { title:'Juramentada',            year:2017, series:'Stormlight #3', desc:'La gran Desolación comienza. Dalinar une a los reyes. Odium revela su verdadero poder.' },
-      { title:'El Ritmo de la Guerra',  year:2020, series:'Stormlight #4', desc:'Urithiru cae. La Luz Siniestra emerge. Navani descubre los secretos del fabrialismo avanzado.' },
-      { title:'Viento y Verdad',        year:2024, series:'Stormlight #5', desc:'La conclusión de la primera mitad. El Cosmere cambia irrevocablemente. Szeth encuentra su camino.' },
-      { title:'Edgedancer',             year:2016, series:'Novella',        desc:'Lift busca al asesino de blanco mientras come todo lo que encuentra en la ciudad de Yeddaw.' },
-      { title:'Dawnshard',              year:2020, series:'Novella',        desc:'Rysn navega al continente prohibido de Aimia y descubre uno de los poderes primordiales del Cosmere.' },
-    ]
-  },
-  {
-    id:'scadrial', books:[
-      { title:'El Imperio Final',        year:2006, series:'Mistborn Era 1 #1', desc:'Kelsier y Vin roban el Imperio. El Lord Legislador lleva mil años en el trono.' },
-      { title:'El Pozo de la Ascensión', year:2007, series:'Mistborn Era 1 #2', desc:'El Imperio ha caído pero el verdadero enemigo despierta bajo Luthadel.' },
-      { title:'El Héroe de las Eras',    year:2008, series:'Mistborn Era 1 #3', desc:'El apocalipsis llega. Ruina es libre. Sazed busca en qué creer al final del mundo.' },
-      { title:'Aleación de Ley',         year:2011, series:'Wax & Wayne #1',   desc:'300 años después. Wax, sheriff alomántico, regresa a la ciudad como heredero noble.' },
-      { title:'Sombras de Identidad',    year:2016, series:'Wax & Wayne #2',   desc:'Los Colmillos usan hemalurgia. Kelsier opera desde el Reino Cognitivo.' },
-      { title:'Brazales de Duelo',       year:2017, series:'Wax & Wayne #3',   desc:'Wax se enfrenta al Superviviente. Autonomía pone los ojos en Scadrial.' },
-      { title:'El Metal Perdido',        year:2022, series:'Wax & Wayne #4',   desc:'La Era 2 concluye. El viaje entre mundos se vuelve central por primera vez.' },
-    ]
-  },
-  {
-    id:'sel', books:[
-      { title:'Elantris',              year:2005, series:'Sel #1',   desc:'La ciudad de dioses cayó. Raoden despierta transformado. Sarene llega a un reino en crisis.' },
-      { title:'El Alma del Emperador', year:2012, series:'Novella',  desc:'Hugo Award. Shai, Forjadora del Alma, debe recrear la mente del Emperador en 100 días.' },
-    ]
-  },
-  {
-    id:'nalthis', books:[
-      { title:'El Aliento de los Dioses', year:2009, series:'Warbreaker', desc:'Siri y Vivenna en la ciudad de los dioses Retornados. Vasher porta la espada que devora almas.' },
-    ]
-  },
-  {
-    id:'taldain', books:[
-      { title:'White Sand (Arena Blanca)', year:2016, series:'Novela Gráfica', desc:'Kenton sobrevive a una masacre y lidera a los Sand Masters. Khriss investiga la magia del desierto.' },
-    ]
-  },
-  {
-    id:'lumar', books:[
-      { title:'Trenza del Mar Esmeralda', year:2023, series:'Secretas Historia #1', desc:'Tress cruza los mares de esporas para rescatar a Charlie. Hoid narra su propia historia.' },
-    ]
-  },
-  {
-    id:'komashi', books:[
-      { title:'Yumi y el Pintor de Pesadillas', year:2023, series:'Secretas Historia #2', desc:'Una santa y un pintor sin talento intercambian mundos y vidas.' },
-    ]
-  },
-  {
-    id:'canticle', books:[
-      { title:'El Hombre Iluminado', year:2023, series:'Secretas Historia #3', desc:'Sigzil/Nomad huye por el Cosmere y en Canticle encuentra su redención bajo un sol letal.' },
-    ]
-  },
+// ── Data ──────────────────────────────────────────────────
+const CHARACTERS = [
+  // Roshar
+  {id:'kaladin',   name:'Kaladin Stormblessed',    world:'roshar',  role:'Portador del Viento',         series:'Stormlight 1-5', power:'Gravedad · Vínculo · Stormlight', trait:'Protector compulsivo. Lucha contra su propia oscuridad.', arc:'De esclavo a Cuarto Ideal.'},
+  {id:'dalinar',   name:'Dalinar Kholin',           world:'roshar',  role:'El Unificador',               series:'Stormlight 1-5', power:'Tesedor de Vínculos · Bondad',    trait:'Fiera de guerra transformada en estadista.',             arc:'De conquistador a garante del nuevo mundo.'},
+  {id:'shallan',   name:'Shallan Davar',            world:'roshar',  role:'Forjadora de Patrones',       series:'Stormlight 1-5', power:'Ilusión · Transformación',        trait:'Identidades fragmentadas. Oculta trauma bajo humor.',    arc:'Integra sus fragmentos en lugar de huir.'},
+  {id:'szeth',     name:'Szeth-son-Neturo',         world:'roshar',  role:'Asesino de Blanco',           series:'Stormlight 1-5', power:'Gravedad · Lashings',             trait:'Torturado por sus crímenes. Busca redención.',           arc:'De asesino a guardián que elige.'},
+  {id:'navani',    name:'Navani Kholin',            world:'roshar',  role:'Gran Investigadora',          series:'Stormlight 1-5', power:'Fabrialismo · Luz Siniestra',     trait:'Científica brillante subestimada.',                      arc:'Arquitecta del nuevo conocimiento.'},
+  {id:'adolin',    name:'Adolin Kholin',            world:'roshar',  role:'Príncipe Duelist',            series:'Stormlight 1-5', power:'Sin magia · Maya (viva)',         trait:'El hombre normal entre héroes extraordinarios.',         arc:'Devuelve la vida a un spren con amistad.'},
+  {id:'lift',      name:'Lift',                     world:'roshar',  role:'La que no debe crecer',       series:'Edgedancer',     power:'Progresión · Comida→Stormlight',  trait:'Roba comida y huye de crecer.',                          arc:'Aprende que querer no es debilidad.'},
+  {id:'venli',     name:'Venli',                    world:'roshar',  role:'Portadora del Despertar',     series:'Stormlight 3-5', power:'Forma Iluminada · Despertar',     trait:'Traicionó a su pueblo por ambición.',                    arc:'De cómplice a profetisa de la libertad.'},
+  // Scadrial
+  {id:'kelsier',   name:'Kelsier',                  world:'scadrial',role:'El Superviviente',            series:'Mistborn Era 1', power:'Alomancia completa · Inmortalidad',trait:'Carismático hasta la manipulación.',                    arc:'Muere y vuelve como leyenda y fuerza del Cosmere.'},
+  {id:'vin',       name:'Vin',                      world:'scadrial',role:'Heroína de las Eras',         series:'Mistborn Era 1', power:'Alomancia completa · Bruma',       trait:'Creció en las sombras. Desconfía de todos.',             arc:'De ladrona a avatar de las Esquirlas.'},
+  {id:'sazed',     name:'Sazed / Armonía',          world:'scadrial',role:'El Dios Terrisano',           series:'Mistborn Era 1', power:'Feruquimia completa · 2 Esquirlas',trait:'Estudioso humilde de religiones.',                      arc:'Absorbe Ruina y Preservación. Lucha por equilibrio.'},
+  {id:'elend',     name:'Elend Venture',            world:'scadrial',role:'El Rey Filósofo',             series:'Mistborn Era 1', power:'Alomancia (tardía)',               trait:'Idealista que aprende que gobernar exige sangre.',       arc:'De noble literario a rey-guerrero.'},
+  {id:'wax',       name:'Waxillium Ladrian',        world:'scadrial',role:'Sheriff · Heredero noble',   series:'Wax & Wayne',    power:'Hierro/Acero · Peso (feruquimia)', trait:'Hombre del orden en dos mundos.',                       arc:'Identidad y deber pueden coexistir.'},
+  {id:'wayne',     name:'Wayne',                    world:'scadrial',role:'El Cambiante · Ladrón',      series:'Wax & Wayne',    power:'Bendalloy · Salud (feruquimia)',   trait:'Bromista que oculta profundo dolor.',                    arc:'Su sacrificio revela que siempre fue el más noble.'},
+  // Sel
+  {id:'raoden',    name:'Raoden',                   world:'sel',     role:'Rey de Elantris',             series:'Elantris',       power:'Aon Dor (restaurado)',             trait:'Mantiene esperanza transformado en muerto viviente.',    arc:'De príncipe a restaurador de Elantris.'},
+  {id:'sarene',    name:'Sarene',                   world:'sel',     role:'Princesa diplomática',        series:'Elantris',       power:'Sin magia · Política',             trait:'Letal en política. Rechaza roles pasivos.',              arc:'Salva un reino sin poderes mágicos.'},
+  {id:'hrathen',   name:'Hrathen',                  world:'sel',     role:'El Gyorn conquistador',       series:'Elantris',       power:'Fe y retórica',                    trait:'Convencido de que hace el bien al conquistar.',          arc:'Su fe se quiebra. Elige personas sobre doctrina.'},
+  {id:'shai',      name:'Shai',                     world:'sel',     role:'La Forjadora del Alma',       series:'El Alma del Emperador', power:'Sello del Alma',           trait:'La artista más grande del Cosmere.',                     arc:'Recrea el alma de un hombre. Define qué hace a una persona.'},
+  // Nalthis
+  {id:'vivenna',   name:'Vivenna',                  world:'nalthis', role:'Princesa · Despertar tardía', series:'Warbreaker',     power:'Despertar · Control de cabello',  trait:'Rígida por educación. Se reconstruye en la ciudad.',     arc:'Va a rescatar y termina siendo quien necesita transformarse.'},
+  {id:'siri',      name:'Siri',                     world:'nalthis', role:'La hermana enviada',          series:'Warbreaker',     power:'Intuición social extraordinaria', trait:'Libre donde Vivenna era disciplinada.',                  arc:'Sobrevive la corte siendo exactamente ella misma.'},
+  {id:'lightsong', name:'Lightsong',                world:'nalthis', role:'El Dios escéptico',           series:'Warbreaker',     power:'Visión profética · Aliento divino',trait:'Sarcástico, perezoso, cuestionador.',                   arc:'Su escepticismo lo hace el único lúcido para el sacrificio.'},
+  {id:'vasher',    name:'Vasher / Zahel',           world:'nalthis', role:'El Exiliado de siglos',       series:'Warbreaker · Stormlight', power:'Despertar avanzado · Nightblood', trait:'Siglos de vida y crímenes.',            arc:'Huye a Roshar. Incapaz de dejar de luchar.'},
+  // Otros
+  {id:'tress',     name:'Tress',                    world:'lumar',   role:'Heroína improbable',          series:'Trenza del Mar Esmeralda', power:'Ingenio · Esporas',    trait:'Modesta por convicción, no inseguridad.',                arc:'Sale de su isla por amor. Siempre fue extraordinaria.'},
+  {id:'yumi',      name:'Yumi',                     world:'komashi', role:'La Santa Elegida',            series:'Yumi y el Pintor',        power:'Invocación de yoki-hijo', trait:'Carga el mundo desde niña. Nunca eligió nada sola.',  arc:'Aprende que merecimiento ≠ sacrificio.'},
+  {id:'nikaro',    name:'Nikaro',                   world:'komashi', role:'El Pintor sin talento',       series:'Yumi y el Pintor',        power:'Pintura de Pesadillas',   trait:'Farsante brillante. Nadie lo ve venir.',              arc:'Su "falta de talento" salva su mundo.'},
+  {id:'sigzil',    name:'Sigzil / Nomad',           world:'canticle',role:'El Viajero Eterno',           series:'El Hombre Iluminado',     power:'Surgebinding · Stormlight remanente', trait:'Huye por el Cosmere. Carga un peso enorme.', arc:'En Canticle encuentra redención.'},
+  {id:'khriss',    name:'Khriss',                   world:'taldain', role:'La Gran Estudiosa',           series:'White Sand · Arcanum',    power:'Conocimiento enciclopédico', trait:'Académica que cruzó su mundo por curiosidad.',          arc:'Se convierte en la mayor experta del Cosmere.'},
+  {id:'kenton',    name:'Kenton',                   world:'taldain', role:'Sand Master',                 series:'White Sand',              power:'Sand Mastery (el más débil)', trait:'Único superviviente de una masacre.',                arc:'Reconstruye su orden desde cero.'},
 ];
 
-// 2. PERSONAJES POR LIBRO
-const CHARACTERS = {
-  roshar: [
-    { name:'Kaladin Stormblessed', role:'Protagonista · Portador del Viento', book:'Stormlight 1-5', power:'Gravedad y Vínculo · Luz de Tormenta', trait:'Protector compulsivo. Luchador eterno contra su propia oscuridad.', arc:'De esclavo de puentes a Cuarto Ideal y Portador del Viento.' },
-    { name:'Dalinar Kholin',       role:'El Unificador · Portador de la Bondad', book:'Stormlight 1-5', power:'Tesedor de Vínculos · Bondad', trait:'Antigua fiera de guerra transformada en estadista. Lleva el peso del mundo.', arc:'De conquistador brutal a garante del nuevo mundo.' },
-    { name:'Shallan Davar',        role:'Forjadora de Patrones · Tejedora de Luz', book:'Stormlight 1-5', power:'Ilusión · Transformación · Luz de Tormenta', trait:'Identidades fragmentadas. Dibujante obsesiva. Oculta trauma bajo humor.', arc:'Aprende a integrar sus fragmentos de personalidad en lugar de huir.' },
-    { name:'Szeth-son-Neturo',     role:'El Asesino de Blanco · Portador de la Verdad', book:'Stormlight 1-5', power:'Gravedad · Lashings · Luz de Tormenta', trait:'Shin torturado por sus crímenes. Busca redención a través de la obediencia.', arc:'De asesino a la fuerza a guardián que elige por convicción.' },
-    { name:'Navani Kholin',        role:'Reina · Gran Investigadora', book:'Stormlight 1-5', power:'Fabrialismo · Luz Siniestra · Dawnshard', trait:'Científica brillante en un mundo que subestima a las mujeres académicas.', arc:'De esposa del rey a arquitecta del nuevo conocimiento del Cosmere.' },
-    { name:'Adolin Kholin',        role:'Duelist · Príncipe', book:'Stormlight 1-5', power:'Espadachín sin magia · Maya (Portadora viva)', trait:'El hombre normal en una saga de héroes extraordinarios. Su normalidad es su fuerza.', arc:'Devuelve la vida a un spren muerto con amistad pura, sin magia.' },
-    { name:'Lift',                 role:'La que no debe crecer', book:'Edgedancer · Stormlight', power:'Progresión · Convierte comida en Stormlight', trait:'Roba comida y huye de crecer. La chica que eligió no olvidar al mundo.', arc:'Aprende que querer a la gente no es debilidad.' },
-    { name:'Venli',                role:'Traicionera arrepentida · Portadora del Despertar', book:'Stormlight 3-5', power:'Forma Iluminada · Despertar', trait:'Traicionó a su pueblo por ambición. Lidera su redención desde dentro.', arc:'De cómplice de la invasión a profetisa de la libertad reshi.' },
-  ],
-  scadrial: [
-    { name:'Kelsier',   role:'El Superviviente · Señor de los Ladrones', book:'Mistborn Era 1', power:'Alomancia completa · Inmortalidad cognitiva', trait:'Carismático hasta la manipulación. Ama a su equipo pero lo usa como piezas.', arc:'Muere y vuelve — primero como leyenda, luego como fuerza activa del Cosmere.' },
-    { name:'Vin',       role:'La Heroína de las Eras', book:'Mistborn Era 1', power:'Alomancia completa · Bruma · Ruina/Preservación', trait:'Creció en las sombras. Desconfía de todos. Aprende a amar y a confiar.', arc:'De ladrona de los bajos fondos a avatar de las Esquirlas y Heroína mítica.' },
-    { name:'Sazed',     role:'El Terrisano que se convirtió en dios', book:'Mistborn Era 1', power:'Feruquimia completa · Armonía (2 Esquirlas)', trait:'Estudioso humilde de religiones. Perdió su fe antes de ganarla toda.', arc:'Absorbe dos Esquirlas opuestas y lucha por mantener el equilibrio como Armonía.' },
-    { name:'Elend Venture', role:'El Rey Filósofo', book:'Mistborn Era 1-2', power:'Alomancia (tardía) · Feruquimia (mínima)', trait:'Idealista que aprende que gobernar exige sangre además de principios.', arc:'De noble literario a rey-guerrero que carga con las decisiones imposibles.' },
-    { name:'Waxillium Ladrian', role:'Sheriff · Heredero noble', book:'Wax & Wayne', power:'Alomancia (hierro/acero) · Feruquimia (peso)', trait:'Hombre del orden en dos mundos: el salvaje Outer Ring y la alta sociedad.', arc:'Encuentra que identidad y deber pueden coexistir sin destruirse.' },
-    { name:'Wayne',     role:'El Cambiante · Ladrón regenerador', book:'Wax & Wayne', power:'Alomancia (bendalloy) · Feruquimia (salud)', trait:'Se disfraza de cualquier persona. Bromista que oculta profundo dolor y culpa.', arc:'Su sacrificio final revela que siempre fue el más noble del equipo.' },
-  ],
-  sel: [
-    { name:'Raoden',  role:'Príncipe · Rey de Elantris', book:'Elantris', power:'Aon Dor (restaurado)', trait:'Mantiene esperanza y liderazgo incluso transformado en muerto viviente.', arc:'De príncipe perfecto a dios caído a restaurador de Elantris.' },
-    { name:'Sarene',  role:'Princesa diplomática', book:'Elantris', power:'Sin magia · Inteligencia política', trait:'Letal en política. Rechaza el rol pasivo asignado a las mujeres de su época.', arc:'Navega una conspiración política y salva a un reino sin poderes mágicos.' },
-    { name:'Hrathen', role:'El Gyorn conquistador', book:'Elantris', power:'Fe y retórica · Dakhor (implícito)', trait:'El villano más humano: convencido de que hace el bien al conquistar almas.', arc:'Su fe se quiebra y elige a las personas sobre la doctrina.' },
-    { name:'Shai',    role:'La Forjadora del Alma', book:'El Alma del Emperador', power:'Sello del Alma · Forja de la Realidad', trait:'La artista más grande del Cosmere. Ve la identidad como algo moldeable y real.', arc:'Recrea el alma de un hombre y en el proceso define qué hace a una persona.' },
-  ],
-  nalthis: [
-    { name:'Vivenna',  role:'Princesa preparada · Despertar tardía', book:'Warbreaker', power:'Despertar · Control de cabello · Aliento', trait:'Rígida por educación. Se deshace y reconstruye en la ciudad que la consume.', arc:'Va a rescatar a su hermana y termina siendo quien necesita rescate y transformación.' },
-    { name:'Siri',     role:'La hermana enviada · Reina de dioses', book:'Warbreaker', power:'Mínima magia · Intuición social extraordinaria', trait:'Libre y espontánea donde Vivenna era disciplinada. Sobrevive con simpatía genuina.', arc:'Sobrevive a la corte divina siendo exactamente ella misma.' },
-    { name:'Lightsong',role:'El Dios que no cree en sí mismo', book:'Warbreaker', power:'Retornado · Visión profética · Aliento divino', trait:'Sarcástico, perezoso, cuestionador de todo. Especialmente de su propia divinidad.', arc:'Su escepticismo lo hace el único con claridad para el sacrificio necesario.' },
-    { name:'Vasher',   role:'El Despertar más poderoso · Zahel en Roshar', book:'Warbreaker · Stormlight', power:'Despertar avanzado · Comandante de Nightblood', trait:'Peso devastador de siglos de vida y crímenes. Busca un lugar donde descansar.', arc:'Abandona Nalthis y vive exiliado en Roshar, incapaz de dejar de luchar.' },
-  ],
-  lumar: [
-    { name:'Tress',  role:'Recolectora de tazas · Heroína improbable', book:'Trenza del Mar Esmeralda', power:'Sin magia · Ingenio extraordinario · Sporas', trait:'Modesta por convicción, no por inseguridad. La persona más lista de su historia.', arc:'Sale de su isla por amor y descubre que siempre fue extraordinaria.' },
-  ],
-  komashi: [
-    { name:'Yumi',   role:'La Santa Elegida · Invocadora de espíritus', book:'Yumi y el Pintor', power:'Invocación de yoki-hijo · Sacrificio ritual', trait:'Carga el mundo de sus espaldas desde niña. Nunca ha elegido nada por sí misma.', arc:'Aprende que merecimiento y sacrificio no son la misma cosa.' },
-    { name:'Nikaro', role:'El Pintor sin talento · Nikolin', book:'Yumi y el Pintor', power:'Pintura de Pesadillas (latente)', trait:'Farsante brillante. Su mayor poder es que nadie lo ve venir.', arc:'Descubre que su "falta de talento" era el don más necesario para salvar su mundo.' },
-  ],
-};
+const BOOKS = [
+  // Roshar
+  {id:'camino',    title:'El Camino de los Reyes',      world:'roshar',  series:'Stormlight #1', year:2010, desc:'Kaladin cae a la esclavitud. Dalinar tiene visiones. Las Altas Tormentas barren Roshar. Los Caballeros Radiantes regresan.'},
+  {id:'palabras',  title:'Palabras Radiantes',          world:'roshar',  series:'Stormlight #2', year:2014, desc:'Los Portadores del Vacío vuelven. Shallan llega a Urithiru. Kaladin jura el Tercer Ideal.'},
+  {id:'juramentada',title:'Juramentada',               world:'roshar',  series:'Stormlight #3', year:2017, desc:'La gran Desolación llega. Dalinar une reyes. Odium revela su verdadero poder. Adolin mata a un Portador de Honor.'},
+  {id:'ritmo',     title:'El Ritmo de la Guerra',       world:'roshar',  series:'Stormlight #4', year:2020, desc:'Urithiru cae. La Luz Siniestra emerge. Navani descubre los secretos del fabrialismo avanzado.'},
+  {id:'viento',    title:'Viento y Verdad',             world:'roshar',  series:'Stormlight #5', year:2024, desc:'La conclusión de la primera mitad. El Cosmere cambia irrevocablemente. Szeth encuentra su camino.'},
+  {id:'edgedancer',title:'Edgedancer',                 world:'roshar',  series:'Novella',       year:2016, desc:'Lift busca al Asesino de Blanco mientras come todo lo que encuentra en la ciudad de Yeddaw.'},
+  {id:'dawnshard', title:'Dawnshard',                  world:'roshar',  series:'Novella',       year:2020, desc:'Rysn navega al continente prohibido de Aimia y descubre uno de los poderes primordiales del Cosmere.'},
+  // Scadrial
+  {id:'imperio',   title:'El Imperio Final',           world:'scadrial',series:'Mistborn #1',   year:2006, desc:'Kelsier y Vin conspiran para derrocar al Lord Legislador, un dios-emperador inmortal que gobierna hace mil años.'},
+  {id:'pozo',      title:'El Pozo de la Ascensión',    world:'scadrial',series:'Mistborn #2',   year:2007, desc:'Con el Imperio caído, Elend gobierna mientras algo antiguo despierta bajo Luthadel.'},
+  {id:'heroe',     title:'El Héroe de las Eras',       world:'scadrial',series:'Mistborn #3',   year:2008, desc:'El apocalipsis llega. Ruina es libre. Sazed busca en qué creer al final del mundo.'},
+  {id:'aleacion',  title:'Aleación de Ley',            world:'scadrial',series:'Wax & Wayne #1',year:2011, desc:'300 años después. Wax, sheriff alomántico, regresa a la alta sociedad de Elendel.'},
+  {id:'sombras',   title:'Sombras de Identidad',       world:'scadrial',series:'Wax & Wayne #2',year:2016, desc:'Los Colmillos usan hemalurgia. Kelsier reaparece desde el Reino Cognitivo.'},
+  {id:'brazales',  title:'Brazales de Duelo',          world:'scadrial',series:'Wax & Wayne #3',year:2017, desc:'Wax se enfrenta al Superviviente. Un avatar de Autonomía aparece en Scadrial.'},
+  {id:'metal',     title:'El Metal Perdido',           world:'scadrial',series:'Wax & Wayne #4',year:2022, desc:'La Era 2 concluye. El viaje entre mundos se vuelve central por primera vez.'},
+  // Sel
+  {id:'elantris',  title:'Elantris',                   world:'sel',     series:'Sel #1',        year:2005, desc:'La ciudad de dioses cayó. Raoden despierta transformado. Sarene llega a un reino en crisis.'},
+  {id:'emperor',   title:'El Alma del Emperador',      world:'sel',     series:'Novella',       year:2012, desc:'Hugo Award. Shai debe recrear el alma del Emperador en 100 días o morir.'},
+  // Nalthis
+  {id:'aliento',   title:'El Aliento de los Dioses',   world:'nalthis', series:'Warbreaker',    year:2009, desc:'Siri y Vivenna en la ciudad de los dioses Retornados. Vasher porta Nightblood, la espada que devora almas.'},
+  // Otros
+  {id:'whitesand', title:'White Sand',                 world:'taldain', series:'Novela Gráfica',year:2016, desc:'Kenton sobrevive a una masacre y lidera a los Sand Masters. Khriss investiga la magia del desierto.'},
+  {id:'trenza',    title:'Trenza del Mar Esmeralda',   world:'lumar',   series:'Secretas #1',   year:2023, desc:'Tress cruza mares de esporas para rescatar a Charlie. Hoid narra su propia historia.'},
+  {id:'yumipaint', title:'Yumi y el Pintor de Pesadillas', world:'komashi',series:'Secretas #2',year:2023, desc:'Una santa y un pintor sin talento intercambian mundos y vidas. Amor e identidad.'},
+  {id:'iluminado', title:'El Hombre Iluminado',        world:'canticle',series:'Secretas #3',   year:2023, desc:'Sigzil/Nomad huye por el Cosmere y en Canticle bajo un sol letal encuentra su redención.'},
+];
 
-// 3. SALTAMUNDO
+const PLANETS = [
+  {id:'roshar',   name:'Roshar',   world:'roshar',  shard:'Honor · Cultivación · Odium', magic:'Surgebinding · Fabriales · Stormlight', desc:'Un mundo oceánico y fracturado. Las Altas Tormentas lo barren eternamente de este a oeste. Los spren son fragmentos de pensamiento y emoción.', detail:'3 planetas: Ashyn, Roshar, Braize. Nomon es la luna principal de Roshar.'},
+  {id:'scadrial', name:'Scadrial', world:'scadrial',shard:'Armonía (Ruina + Preservación)', magic:'Alomancia · Feruquimia · Hemalurgia', desc:'Un mundo de cenizas y brumas perpetuas, creado y destruido por Esquirlas. Ahora bajo Armonía, la magia de los metales define a su gente.', detail:'1 planeta. Avanza desde la Era Industrial hacia el futuro del Cosmere.'},
+  {id:'sel',      name:'Sel',      world:'sel',     shard:'Devoción · Dominio (astilladas)', magic:'Aon Dor · ChayShan · Sellos del Alma · Dakhor', desc:'Las Esquirlas fueron astilladas por Odium y atrapadas en el Reino Cognitivo. La magia está atada a la geografía física del mundo.', detail:'1 planeta. La magia cambia según la región del mundo donde se practica.'},
+  {id:'nalthis',  name:'Nalthis',  world:'nalthis', shard:'Dotación (Endowment)', magic:'Despertar · Retornados · Aliento', desc:'Cada persona nace con un Aliento — una chispa de Investidura. Los Retornados son dioses que regresan de la muerte con poderes extraordinarios.', detail:'1 planeta. Los colores amplifican el poder del Despertar.'},
+  {id:'taldain',  name:'Taldain',  world:'taldain', shard:'Autonomía', magic:'Sand Mastery (Dominio de Arena)', desc:'Tidalmente bloqueado entre dos soles. El Dayside es un desierto eterno donde la luz activa la magia de la arena. El Darkside vive en perpetua oscuridad.', detail:'1 planeta. Autonomía aisló este sistema del resto del Cosmere.'},
+  {id:'lumar',    name:'Lumar',    world:'lumar',   shard:'Desconocida', magic:'Éter de esporas · Doce lunas', desc:'Un mundo rodeado de vastos mares de esporas de éter en lugar de agua. Doce lunas lo orbitan. Los marineros navegan con poderes únicos del éter.', detail:'12 tipos de éter, cada uno con propiedades distintas. Hoid aparece aquí como Ala.'},
+  {id:'komashi',  name:'Komashi',  world:'komashi', shard:'Virtuosismo (fragmentada)', magic:'Yoki-hijo · Pintura de Pesadillas', desc:'La Esquirla Virtuosismo fue fragmentada, dejando una herida en la realidad. Los pintores de pesadillas protegen a los humanos de criaturas que emergen de noche.', detail:'Los yoki-hijo son espíritus que habitan pozos de lava. La magia es visual y táctil.'},
+  {id:'canticle', name:'Canticle', world:'canticle',shard:'Desconocida', magic:'Sunhearts · Calor solar acumulado', desc:'Un planeta abrasado por un sol extraordinariamente brillante. Los Sunhearts son cristales que absorben calor solar. Sin ellos la vida es imposible.', detail:'Sigzil/Nomad llegó aquí huyendo de una amenaza cósmica. Ocurre en el futuro lejano del Cosmere.'},
+];
+
 const WORLDHOPPERS = [
-  {
-    name:'Hoid / Wit / Cephandrius',
-    realName:'Desconocido',
-    origin:'Yolen',
-    accent:'#c8b880',
-    bg:'#06060a',
-    role:'El Eterno Testigo',
-    magic:'Alomancia · Despertar · Cantamundos · Surgebinding · Sello del Alma · y más',
-    appearances:[
-      { world:'Roshar',   alias:'Wit / Malasei el Juglar', role:'Bufón de la corte Kholin · Mentor oculto de Kaladin' },
-      { world:'Scadrial', alias:'Drifter / Coins', role:'Alomante menor · Operador en las sombras de la Era 1' },
-      { world:'Sel',      alias:'Mendigo de Teod', role:'Colector de Investidura de las Esquirlas astilladas' },
-      { world:'Nalthis',  alias:'El Flautista', role:'Juglar en la corte de Hallandren' },
-      { world:'Lumar',    alias:'Ala (Wing)', role:'Narrador de la historia de Tress · Protagonista parcial' },
-      { world:'Taldain',  alias:'Hoid',        role:'Presente en los eventos de White Sand' },
-    ],
-    mystery:'¿Por qué es inmortal? ¿Qué perdió en Yolen que lo impulsa a recolectar magia? ¿Es el héroe o el mayor peligro del Cosmere?',
-    quote:'"He vivido durante siglos y lo único que he aprendido es que las personas como tú —las que se preocupan— son las más peligrosas de todas."',
-  },
-  {
-    name:'Kelsier el Superviviente',
-    realName:'Kelsier',
-    origin:'Scadrial',
-    accent:'#d4804d',
-    bg:'#0e0400',
-    role:'El Inmortal Involuntario',
-    magic:'Alomancia completa · Existencia cognitiva · Conexión entre mundos',
-    appearances:[
-      { world:'Scadrial', alias:'El Superviviente', role:'Leyenda viviente · Fantasma cognitivo · Operador secreto de los Ghostbloods' },
-      { world:'Roshar',   alias:'Thaidakar (El que tiene sombra larga)', role:'Líder de los Ghostbloods · Opera desde el Reino Cognitivo influenciando Roshar' },
-    ],
-    mystery:'Murió pero no se fue. Existe en el Reino Cognitivo y construye una organización secreta inter-mundo. ¿Cuál es su objetivo final?',
-    quote:'"Sobrevivir no es suficiente. Tienes que vivir."',
-  },
-  {
-    name:'Vasher / Zahel',
-    realName:'Vasher',
-    origin:'Nalthis',
-    accent:'#d47c4d',
-    bg:'#140600',
-    role:'El Exiliado de Siglos',
-    magic:'Despertar maestro · Portador de Nightblood · Sustentado por Stormlight en Roshar',
-    appearances:[
-      { world:'Nalthis',  alias:'Vasher', role:'Uno de los cinco Inmortales Guerreros. Creó a Nightblood junto a Shashara.' },
-      { world:'Roshar',   alias:'Zahel', role:'Maestro de armas en las fortalezas Kholin. Entrena a Adolin y Kaladin en secreto.' },
-    ],
-    mystery:'¿Por qué huyó de Nalthis? ¿Qué crimen lo hace incapaz de descansar? Su pasado y el de Vivenna están unidos a la historia de Nightblood.',
-    quote:'"Cometí un error hace mucho tiempo. Algunas personas llaman a eso genio."',
-  },
-  {
-    name:'Khriss',
-    realName:'Khrissalla',
-    origin:'Taldain (Darkside)',
-    accent:'#d4c44d',
-    bg:'#080600',
-    role:'La Gran Estudiosa del Cosmere',
-    magic:'Sin magia · Conocimiento enciclopédico de la Investidura',
-    appearances:[
-      { world:'Taldain',   alias:'Khriss', role:'Protagonista de White Sand. Académica del Darkside que estudia el Dayside.' },
-      { world:'Cosmere',   alias:'Khriss', role:'Autora de los ensayos de Arcanum Unbounded. Conoce más secretos del Cosmere que casi nadie.' },
-    ],
-    mystery:'Es la autora en la sombra de los epílogos de Arcanum Unbounded. Su perspectiva sobre Hoid y las Esquirlas es la más objetiva que existe.',
-    quote:'"La Investidura no entiende de lealtades. Es una fuerza, como la gravedad. La pregunta es quién la sostiene."',
-  },
-  {
-    name:'Nazh',
-    realName:'Nazrilof',
-    origin:'Threnody',
-    accent:'#9090c8',
-    bg:'#04040e',
-    role:'El Agente de Khriss',
-    magic:'Resistencia a las Sombras · Habilidad innata de Threnody',
-    appearances:[
-      { world:'Roshar',   alias:'Nazh', role:'Colector de mapas y artefactos para Khriss. Sus anotaciones aparecen en los mapas del Archivo de las Tormentas.' },
-      { world:'Scadrial', alias:'Nazh', role:'Recopila información de la Era de los Metales.' },
-    ],
-    mystery:'Huyó de Threnody, un mundo de sombras y muertos que regresan. Sus anotaciones en los mapas son la única ventana a su carácter.',
-    quote:'"Khriss: necesito un aumento. Nazh."',
-  },
+  {id:'kelsier-wh',   name:'Kelsier',          origin:'Scadrial',  accent:'#d4804d', role:'El Inmortal Involuntario',
+    magic:'Alomancia · Existencia cognitiva', worlds:['Scadrial','Roshar'],
+    aliases:{'Scadrial':'El Superviviente','Roshar':'Thaidakar (el que tiene sombra larga)'},
+    mystery:'Murió pero no desapareció. Existe en el Reino Cognitivo y construye los Ghostbloods inter-mundos.'},
+  {id:'vasher-wh',    name:'Vasher / Zahel',   origin:'Nalthis',   accent:'#d47c4d', role:'El Exiliado de Siglos',
+    magic:'Despertar maestro · Nightblood · Sustentado por Stormlight',worlds:['Nalthis','Roshar'],
+    aliases:{'Nalthis':'Vasher','Roshar':'Zahel (maestro de armas)'},
+    mystery:'Huyó de Nalthis tras el crimen de crear Nightblood. No puede descansar.'},
+  {id:'khriss-wh',    name:'Khriss',           origin:'Taldain',   accent:'#d4c44d', role:'La Gran Estudiosa',
+    magic:'Sin magia · Conocimiento enciclopédico',worlds:['Taldain','Cosmere (múltiples)'],
+    aliases:{'Taldain':'Khrissalla','Cosmere':'Autora del Arcanum Unbounded'},
+    mystery:'Sus ensayos de Arcanum son la fuente más objetiva sobre las Esquirlas. Conoce más que casi nadie.'},
+  {id:'nazh-wh',      name:'Nazh',             origin:'Threnody',  accent:'#9090c8', role:'El Agente de Khriss',
+    magic:'Resistencia a las Sombras de Threnody',worlds:['Roshar','Scadrial','Threnody'],
+    aliases:{'Roshar':'Nazh','Scadrial':'Nazh'},
+    mystery:'Huyó de Threnody, un mundo de sombras y muertos que regresan. Sus anotaciones en los mapas son la única ventana a su carácter.'},
 ];
 
-// ─────────────────────────────────────────────────────────
-// CANVAS ART GENERATORS
-// ─────────────────────────────────────────────────────────
-const h2r = hex => ({r:parseInt(hex.slice(1,3),16),g:parseInt(hex.slice(3,5),16),b:parseInt(hex.slice(5,7),16)});
+const HOID_APPEARANCES = [
+  {world:'roshar',   alias:'Wit / Malasei el Juglar', color:'#4d8fd4', role:'Bufón de la corte Kholin. Mentor oculto. Aparece en momentos pivote de Kaladin, Dalinar y Shallan.'},
+  {world:'scadrial', alias:'Drifter / Marabou',       color:'#c8a855', role:'Alomante de monedas en la sombra. Operador en los bajos fondos durante la Era de los Metales.'},
+  {world:'sel',      alias:'Mendigo de Teod',         color:'#7cba65', role:'Colector de Investidura de las Esquirlas astilladas de Devoción y Dominio.'},
+  {world:'nalthis',  alias:'El Flautista',            color:'#d47c4d', role:'Juglar en la corte de Hallandren. Observa el drama de Siri, Vivenna y Lightsong.'},
+  {world:'lumar',    alias:'Ala (Wing)',               color:'#8a5fd4', role:'Narrador de la historia de Tress. Protagonista parcial de su propia aventura.'},
+  {world:'taldain',  alias:'Hoid',                    color:'#d4c44d', role:'Presente en los eventos de White Sand antes de que Khriss cruzara el mundo.'},
+];
 
-// Noise helpers
-const hs = (x,y,s=7) => { const n=Math.sin(x*127.1+y*311.7+s*74.3)*43758.5453; return n-Math.floor(n); };
-const ns = (x,y,s=7) => { const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy); return hs(ix,iy,s)*(1-ux)*(1-uy)+hs(ix+1,iy,s)*ux*(1-uy)+hs(ix,iy+1,s)*(1-ux)*uy+hs(ix+1,iy+1,s)*ux*uy; };
-const fbm = (x,y,o=4,s=7) => { let v=0,a=0.5,f=1; for(let i=0;i<o;i++){v+=a*ns(x*f,y*f,s);a*=0.5;f*=2.1;} return v; };
+const HOID_MAGIC = [
+  {name:'Cantamundos',      origin:'Yolen',    desc:'Arte verbal antiguo de poder desconocido. El arte de contar historias como magia literal.'},
+  {name:'Alomancia',        origin:'Scadrial', desc:'Quema metales para poderes. Capacidad completa o parcial, unclear.'},
+  {name:'Despertar',        origin:'Nalthis',  desc:'Animar objetos con Aliento. Ha acumulado muchos Alientos a lo largo de siglos.'},
+  {name:'Surgebinding',     origin:'Roshar',   desc:'Limitado. Ha utilizado Stormlight y tiene vínculo con al menos un spren.'},
+  {name:'Aon Dor',          origin:'Sel',      desc:'Investidura geográfica de Elantris. Recolectada de las Esquirlas astilladas.'},
+  {name:'Otros sistemas',   origin:'Varios',   desc:'Al menos 2-3 sistemas adicionales no confirmados públicamente.'},
+];
 
-function drawPortrait(canvas, char, world) {
-  const W=canvas.width, H=canvas.height;
-  const ctx=canvas.getContext('2d');
-  const pal=WORLD_PALETTE[world]||{color:'#c8b880',bg:'#050508'};
-  const ac=h2r(pal.color);
+// ── Components ────────────────────────────────────────────
 
-  // Background gradient
-  const bg=ctx.createRadialGradient(W*.45,H*.35,0,W*.5,H*.5,W*.9);
-  const bgc=h2r(pal.bg);
-  bg.addColorStop(0,`rgb(${Math.min(bgc.r+20,60)},${Math.min(bgc.g+18,55)},${Math.min(bgc.b+22,70)})`);
-  bg.addColorStop(1,pal.bg);
-  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-
-  // Atmospheric haze bands
-  for(let i=0;i<4;i++){
-    const y=H*(.15+i*.22), str=.03+i*.01;
-    const g2=ctx.createLinearGradient(0,y-40,0,y+40);
-    g2.addColorStop(0,'rgba(0,0,0,0)');
-    g2.addColorStop(.5,`rgba(${ac.r},${ac.g},${ac.b},${str})`);
-    g2.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g2; ctx.fillRect(0,y-40,W,80);
-  }
-
-  // World-specific background element
-  if(world==='roshar'){
-    ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.12)`; ctx.lineWidth=1;
-    for(let i=0;i<5;i++){
-      const sx=Math.random()*W, sy=0;
-      ctx.beginPath(); ctx.moveTo(sx,sy);
-      let cx2=sx,cy2=sy;
-      while(cy2<H*.6){ cx2+=(Math.random()-.5)*30; cy2+=Math.random()*40+10; ctx.lineTo(cx2,cy2); }
-      ctx.stroke();
-    }
-  } else if(world==='scadrial'){
-    ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.08)`; ctx.lineWidth=2;
-    for(let i=0;i<8;i++){
-      ctx.beginPath(); ctx.moveTo(i*W*.14,H);
-      ctx.bezierCurveTo(i*W*.14+(Math.random()-.5)*40,H*.6,i*W*.14+(Math.random()-.5)*60,H*.3,i*W*.14+(Math.random()-.5)*50,0);
-      ctx.stroke();
-    }
-  } else if(world==='komashi'){
-    for(let i=0;i<6;i++){
-      ctx.beginPath(); ctx.moveTo(Math.random()*W,0); ctx.lineTo(Math.random()*W,H);
-      ctx.strokeStyle=`rgba(255,80,20,.06)`; ctx.lineWidth=3+Math.random()*6; ctx.stroke();
-    }
-  } else if(world==='lumar'){
-    for(let i=0;i<4;i++){
-      const mx=W*(.1+i*.25), my=H*(.08+i*.04), mr=W*.04;
-      const mg=ctx.createRadialGradient(mx,my,0,mx,my,mr);
-      mg.addColorStop(0,'rgba(180,160,220,.6)'); mg.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=mg; ctx.fillRect(mx-mr,my-mr,mr*2,mr*2);
-    }
-  }
-
-  // Investiture aura rings
-  const fx=W*.5, fy=H*.45;
-  for(let i=0;i<3;i++){
-    const r=W*(.22+i*.08);
-    ctx.beginPath(); ctx.arc(fx,fy,r,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},${.18-.05*i})`;
-    ctx.lineWidth=i===0?1.5:.8; ctx.setLineDash(i===2?[4,6]:[]);
-    ctx.stroke(); ctx.setLineDash([]);
-  }
-
-  // Silhouette (abstract humanoid form)
-  const headR=W*.085;
-  const bodyGlow=ctx.createRadialGradient(fx,fy+headR*1.5,0,fx,fy+headR,W*.3);
-  bodyGlow.addColorStop(0,`rgba(${ac.r},${ac.g},${ac.b},.14)`);
-  bodyGlow.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=bodyGlow; ctx.fillRect(0,0,W,H);
-
-  const headGrad=ctx.createRadialGradient(fx-headR*.3,fy-H*.2-headR*.3,0,fx,fy-H*.2,headR);
-  headGrad.addColorStop(0,`rgba(${ac.r*.4|0},${ac.g*.35|0},${ac.b*.3|0},.9)`);
-  headGrad.addColorStop(1,`rgba(10,8,12,.85)`);
-  ctx.beginPath(); ctx.arc(fx,fy-H*.2,headR,0,Math.PI*2);
-  ctx.fillStyle=headGrad; ctx.fill();
-  ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.35)`; ctx.lineWidth=1; ctx.stroke();
-
-  const bodyGrad2=ctx.createLinearGradient(fx,fy-H*.1,fx,fy+H*.35);
-  bodyGrad2.addColorStop(0,`rgba(${ac.r*.3|0},${ac.g*.28|0},${ac.b*.25|0},.8)`);
-  bodyGrad2.addColorStop(1,`rgba(5,5,8,.7)`);
-  ctx.beginPath();
-  ctx.moveTo(fx-W*.1,fy+H*.35);
-  ctx.bezierCurveTo(fx-W*.12,fy+H*.1,fx-W*.07,fy-H*.08,fx,fy-H*.1);
-  ctx.bezierCurveTo(fx+W*.07,fy-H*.08,fx+W*.12,fy+H*.1,fx+W*.1,fy+H*.35);
-  ctx.closePath();
-  ctx.fillStyle=bodyGrad2; ctx.fill();
-  ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.2)`; ctx.lineWidth=1; ctx.stroke();
-
-  const sparkle=ctx.createRadialGradient(fx,fy-H*.2,0,fx,fy-H*.2,headR*2.5);
-  sparkle.addColorStop(0,`rgba(${ac.r},${ac.g},${ac.b},.25)`);
-  sparkle.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=sparkle; ctx.fillRect(0,0,W,H);
-
-  const bot=ctx.createLinearGradient(0,H*.6,0,H);
-  bot.addColorStop(0,'rgba(0,0,0,0)'); bot.addColorStop(1,'rgba(0,0,0,.75)');
-  ctx.fillStyle=bot; ctx.fillRect(0,H*.6,W,H*.4);
-}
-
-function drawBookCover(canvas, book, world) {
-  const W=canvas.width,H=canvas.height;
-  const ctx=canvas.getContext('2d');
-  const pal=WORLD_PALETTE[world]||{color:'#c8b880',bg:'#050508'};
-  const ac=h2r(pal.color);
-
-  const bg=ctx.createLinearGradient(0,0,0,H);
-  const bgc=h2r(pal.bg);
-  bg.addColorStop(0,`rgb(${Math.min(bgc.r+25,70)},${Math.min(bgc.g+20,65)},${Math.min(bgc.b+28,80)})`);
-  bg.addColorStop(1,pal.bg);
-  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-
-  const sd=book.title.split('').reduce((a,c)=>a+c.charCodeAt(0),0)%100;
-  const imgD=ctx.createImageData(W,H); const d=imgD.data;
-  for(let py=0;py<H;py++) for(let px=0;px<W;px++){
-    const idx=(py*W+px)*4;
-    const u=px/W,v=py/H;
-    const n=fbm(u*4+sd,v*4,4,sd);
-    d[idx]=ac.r*(n*.4)|0; d[idx+1]=ac.g*(n*.35)|0; d[idx+2]=ac.b*(n*.5)|0; d[idx+3]=30;
-  }
-  ctx.putImageData(imgD,0,0);
-
-  const cg=ctx.createRadialGradient(W/2,H*.38,0,W/2,H*.38,W*.5);
-  cg.addColorStop(0,`rgba(${ac.r},${ac.g},${ac.b},.22)`);
-  cg.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=cg; ctx.fillRect(0,0,W,H);
-
-  const cx2=W/2,cy2=H*.36;
-  const sr=W*.22;
-  if(world==='roshar'){
-    for(let i=0;i<10;i++){
-      const a=i/10*Math.PI*2;
-      ctx.beginPath(); ctx.moveTo(cx2+Math.cos(a)*sr*.4,cy2+Math.sin(a)*sr*.4);
-      ctx.lineTo(cx2+Math.cos(a)*sr,cy2+Math.sin(a)*sr);
-      ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.3)`; ctx.lineWidth=1; ctx.stroke();
-    }
-    ctx.beginPath(); ctx.arc(cx2,cy2,sr*.4,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.5)`; ctx.lineWidth=1.5; ctx.stroke();
-  } else if(world==='scadrial'){
-    ctx.beginPath(); ctx.moveTo(cx2,cy2-sr); ctx.lineTo(cx2+sr*.5,cy2+sr*.6); ctx.lineTo(cx2-sr*.5,cy2+sr*.6); ctx.closePath();
-    ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.45)`; ctx.lineWidth=1.5; ctx.stroke();
-    ctx.fillStyle=`rgba(${ac.r},${ac.g},${ac.b},.08)`; ctx.fill();
-  } else {
-    ctx.beginPath(); ctx.arc(cx2,cy2,sr,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.35)`; ctx.lineWidth=1.2; ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx2,cy2,sr*.55,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.2)`; ctx.lineWidth=.8; ctx.stroke();
-  }
-
-  const bi=ctx.createLinearGradient(0,H*.55,0,H);
-  bi.addColorStop(0,'rgba(0,0,0,0)'); bi.addColorStop(.35,'rgba(0,0,0,.72)'); bi.addColorStop(1,'rgba(0,0,0,.92)');
-  ctx.fillStyle=bi; ctx.fillRect(0,H*.55,W,H*.45);
-
-  ctx.font=`${W*.028}px 'DM Sans'`; ctx.fillStyle=`rgba(${ac.r},${ac.g},${ac.b},.65)`;
-  ctx.textAlign='center'; ctx.fillText(book.year, W/2, H*.68);
-  ctx.font=`${W*.022}px 'DM Sans'`; ctx.fillStyle='rgba(180,165,140,.4)';
-  ctx.fillText('Brandon Sanderson', W/2, H*.92);
-}
-
-function drawWorldhopperCard(canvas, wh) {
-  const W=canvas.width, H=canvas.height;
-  const ctx=canvas.getContext('2d');
-  const ac=h2r(wh.accent);
-
-  const bg=ctx.createRadialGradient(W*.4,H*.35,0,W*.5,H*.5,W*.9);
-  bg.addColorStop(0,`rgba(${ac.r*.15|0},${ac.g*.12|0},${ac.b*.18|0},1)`);
-  bg.addColorStop(1,`rgba(2,2,6,1)`);
-  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-
-  for(let i=0;i<60;i++){
-    const sx=Math.random()*W,sy=Math.random()*H,sr2=Math.random()*1.5;
-    ctx.beginPath(); ctx.arc(sx,sy,sr2,0,Math.PI*2);
-    ctx.fillStyle=`rgba(255,255,255,${.2+Math.random()*.6})`; ctx.fill();
-  }
-
-  const worlds=wh.appearances;
-  const cx2=W*.5, cy2=H*.42;
-  worlds.forEach((ap,i)=>{
-    const angle=(i/(worlds.length))*Math.PI*2-Math.PI/2+.3;
-    const r=W*.3;
-    const tx=cx2+Math.cos(angle)*r, ty=cy2+Math.sin(angle)*r;
-    ctx.beginPath(); ctx.moveTo(cx2,cy2);
-    ctx.bezierCurveTo(cx2+(tx-cx2)*.3+(Math.random()-.5)*60,cy2+(ty-cy2)*.3+(Math.random()-.5)*40,cx2+(tx-cx2)*.7,cy2+(ty-cy2)*.7,tx,ty);
-    ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.2)`; ctx.lineWidth=.8; ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
-    const wc=h2r(Object.values(WORLD_PALETTE).find(p=>p.name===ap.world)?.color||wh.accent);
-    ctx.beginPath(); ctx.arc(tx,ty,4,0,Math.PI*2);
-    ctx.fillStyle=`rgba(${wc.r},${wc.g},${wc.b},.85)`; ctx.fill();
-  });
-
-  const hgr=ctx.createRadialGradient(cx2,cy2,0,cx2,cy2,W*.18);
-  hgr.addColorStop(0,`rgba(${ac.r*.5|0},${ac.g*.45|0},${ac.b*.4|0},.85)`);
-  hgr.addColorStop(1,'rgba(5,5,10,.9)');
-  ctx.beginPath(); ctx.arc(cx2,cy2,W*.14,0,Math.PI*2); ctx.fillStyle=hgr; ctx.fill();
-  ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.55)`; ctx.lineWidth=1.5; ctx.stroke();
-
-  ctx.beginPath(); ctx.arc(cx2,cy2,W*.09,0,Math.PI*2);
-  ctx.strokeStyle=`rgba(${ac.r},${ac.g},${ac.b},.3)`; ctx.lineWidth=.8; ctx.stroke();
-
-  const glow=ctx.createRadialGradient(cx2,cy2,0,cx2,cy2,W*.22);
-  glow.addColorStop(0,`rgba(${ac.r},${ac.g},${ac.b},.18)`);
-  glow.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
-
-  const bot=ctx.createLinearGradient(0,H*.6,0,H);
-  bot.addColorStop(0,'rgba(0,0,0,0)'); bot.addColorStop(1,'rgba(0,0,0,.82)');
-  ctx.fillStyle=bot; ctx.fillRect(0,H*.6,W,H*.4);
-}
-
-// ─────────────────────────────────────────────────────────
-// COMPONENTS
-// ─────────────────────────────────────────────────────────
-
-// ── Nav Sidebar ───────────────────────────────────────────
-function Sidebar({ active, onSelect }) {
-  const sections = [
-    { id:'hoid',   label:'Hoid',         icon:'✦' },
-    { id:'libros', label:'Libros',        icon:'◈' },
-    { id:'personajes', label:'Personajes', icon:'◉' },
-    { id:'saltamundo', label:'Saltamundo', icon:'⟳' },
-  ];
+// Placeholder visual (colored gradient when no image)
+function Placeholder({ color, bg, icon, size='100%' }) {
   return (
     <div style={{
-      position:'fixed', left:0, top:0, bottom:0, width:56,
-      background:'rgba(1,3,6,.95)', backdropFilter:'blur(20px)',
-      borderRight:'1px solid rgba(255,255,255,.06)',
-      display:'flex', flexDirection:'column', alignItems:'center',
-      paddingTop:80, gap:8, zIndex:100,
+      width:size, height:'100%',
+      background:`linear-gradient(145deg, ${rgba(color,.25)}, ${bg||'#050508'})`,
+      display:'flex', alignItems:'center', justifyContent:'center',
+      flexDirection:'column', gap:8,
     }}>
-      {sections.map(s=>(
-        <button key={s.id} onClick={()=>onSelect(s.id)}
-          title={s.label}
-          style={{
-            width:40, height:40, borderRadius:10,
-            background: active===s.id ? rgba('#c8b880',.12) : 'none',
-            border: active===s.id ? '1px solid rgba(200,184,128,.3)' : '1px solid transparent',
-            color: active===s.id ? '#c8b880' : '#445566',
-            cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center',
-            transition:'all .2s',
-          }}>
-          {s.icon}
-        </button>
-      ))}
-      <div style={{flex:1}}/>
-      <a href="Cosmere.html" title="Volver al Atlas"
-        style={{ width:40,height:40,borderRadius:10,background:'none',border:'1px solid rgba(255,255,255,.08)',color:'#334455',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,textDecoration:'none',marginBottom:20,transition:'all .2s' }}>
-        ↗
-      </a>
-    </div>
-  );
-}
-
-// ── Book Card ─────────────────────────────────────────────
-function BookCard({ book, world, index }) {
-  const canvasRef=useRef(null);
-  const [hov,setHov]=useState(false);
-  const [expanded,setExpanded]=useState(false);
-  const pal=WORLD_PALETTE[world]||{color:'#c8b880'};
-
-  useEffect(()=>{
-    if(!canvasRef.current) return;
-    drawBookCover(canvasRef.current, book, world);
-  },[book.title, world]);
-
-  return (
-    <div
-      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      onClick={()=>setExpanded(e=>!e)}
-      style={{
-        background:`linear-gradient(160deg,rgba(15,15,25,.9),rgba(5,5,10,.95))`,
-        border:`1px solid ${rgba(pal.color, expanded?.45:hov?.28:.12)}`,
-        borderRadius:12, overflow:'hidden',
-        boxShadow: expanded?`0 8px 40px rgba(0,0,0,.6),0 0 20px ${rgba(pal.color,.18)}`:
-                   hov?`0 4px 20px rgba(0,0,0,.4),0 0 10px ${rgba(pal.color,.1)}`:'none',
-        transition:'all .3s cubic-bezier(.22,1,.36,1)',
-        cursor:'pointer',
-        animation:`fadeUp .45s ease ${index*.05}s both`,
-        transform: hov&&!expanded?'translateY(-4px)':'none',
-      }}>
-      <div style={{position:'relative',height:160,overflow:'hidden'}}>
-        <canvas ref={canvasRef} width={320} height={240}
-          style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 50%,rgba(5,5,10,.9))'}}/>
-        <div style={{position:'absolute',bottom:10,left:14}}>
-          <div style={{color:pal.color,fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:2,opacity:.8}}>{book.series}</div>
-          <div style={{color:'#f0e8d8',fontSize:13,fontFamily:"'Cinzel',serif",fontWeight:700,lineHeight:1.25,textShadow:'0 1px 4px rgba(0,0,0,.8)'}}>{book.title}</div>
-        </div>
-        <div style={{position:'absolute',top:10,right:10,color:rgba(pal.color,.7),fontSize:9,fontFamily:"'DM Sans',sans-serif"}}>{book.year}</div>
-      </div>
       <div style={{
-        padding:'12px 14px',
-        maxHeight: expanded?'200px':'0',
-        overflow:'hidden',
-        transition:'max-height .3s ease',
-      }}>
-        <p style={{color:'#8899bb',fontSize:11.5,lineHeight:1.65,fontFamily:"'DM Sans',sans-serif"}}>{book.desc}</p>
+        width:56, height:56, borderRadius:'50%',
+        border:`1.5px solid ${rgba(color,.4)}`,
+        display:'flex', alignItems:'center', justifyContent:'center',
+        color:rgba(color,.6), fontSize:22,
+      }}>{icon||'◈'}</div>
+      <div style={{color:rgba(color,.3), fontSize:9, letterSpacing:'.1em', fontFamily:"'DM Sans',sans-serif", textTransform:'uppercase'}}>
+        Sin imagen
       </div>
-      {!expanded && (
-        <div style={{padding:'0 14px 10px',color:rgba(pal.color,.4),fontSize:9,fontFamily:"'DM Sans',sans-serif"}}>clic para leer →</div>
-      )}
     </div>
   );
 }
 
 // ── Character Card ─────────────────────────────────────────
-function CharacterCard({ char, world, index }) {
-  const canvasRef=useRef(null);
-  const [hov,setHov]=useState(false);
-  const [open,setOpen]=useState(false);
-  const pal=WORLD_PALETTE[world]||{color:'#c8b880'};
-
-  useEffect(()=>{
-    if(!canvasRef.current) return;
-    drawPortrait(canvasRef.current, char, world);
-  },[char.name, world]);
-
+function CharCard({ char, img, onOpen, index=0 }) {
+  const pal = P[char.world]||{c:'#888',bg:'#050508'};
+  const [hov, setHov] = useState(false);
   return (
-    <div
-      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      onClick={()=>setOpen(o=>!o)}
-      style={{
-        background:'rgba(8,10,20,.95)',
-        border:`1px solid ${rgba(pal.color,open?.45:hov?.3:.14)}`,
-        borderRadius:12, overflow:'hidden', cursor:'pointer',
-        boxShadow: open?`0 8px 40px rgba(0,0,0,.65),0 0 24px ${rgba(pal.color,.2)}`:
-                   hov?`0 4px 20px rgba(0,0,0,.4)`:'none',
-        transition:'all .3s cubic-bezier(.22,1,.36,1)',
-        transform: hov&&!open?'translateY(-5px)':'none',
-        animation:`fadeUp .45s ease ${index*.06}s both`,
-      }}>
-      <div style={{position:'relative',height:180,overflow:'hidden'}}>
-        <canvas ref={canvasRef} width={320} height={280}
-          style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 40%,rgba(8,10,20,.95))'}}/>
-        <div style={{position:'absolute',bottom:10,left:14,right:14}}>
-          <div style={{color:pal.color,fontSize:8.5,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",opacity:.8,marginBottom:2}}>{char.book}</div>
-          <div style={{color:'#f0e8d8',fontSize:14,fontFamily:"'Cinzel',serif",fontWeight:700}}>{char.name}</div>
-          <div style={{color:'#7788aa',fontSize:10,fontFamily:"'DM Sans',sans-serif",marginTop:2,fontStyle:'italic'}}>{char.role}</div>
+    <div onClick={onOpen} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
+      background:`linear-gradient(160deg,rgba(10,12,24,.95),${pal.bg})`,
+      border:`1px solid ${rgba(pal.c, hov?.55:.18)}`,
+      borderRadius:12, overflow:'hidden', cursor:'pointer',
+      boxShadow: hov ? `0 14px 36px rgba(0,0,0,.6),0 0 22px ${rgba(pal.c,.22)}` : '0 2px 8px rgba(0,0,0,.3)',
+      transform: hov ? 'translateY(-6px) scale(1.015)' : 'translateY(0) scale(1)',
+      transition:'transform .45s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .35s ease',
+      animation:`fadeUp .55s cubic-bezier(.22,1,.36,1) ${Math.min(index*.04,.5)}s both`,
+      willChange:'transform,box-shadow',
+    }}>
+      <div style={{height:200, overflow:'hidden', position:'relative'}}>
+        {img
+          ? <img src={img} alt={char.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top',display:'block',transform:hov?'scale(1.08)':'scale(1)',transition:'transform .8s cubic-bezier(.22,1,.36,1)'}}/>
+          : <Placeholder color={pal.c} bg={pal.bg} icon='◉'/>
+        }
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 55%,rgba(5,5,14,.98))',transition:'opacity .3s ease'}}/>
+        <div style={{position:'absolute',top:10,right:10,display:'flex',alignItems:'center',gap:5,background:'rgba(0,0,0,.6)',borderRadius:20,padding:'3px 9px',backdropFilter:'blur(8px)',transform:hov?'translateY(-2px)':'none',transition:'transform .3s ease'}}>
+          <div style={{width:6,height:6,borderRadius:'50%',background:pal.c,boxShadow:`0 0 ${hov?14:8}px ${pal.c}`,transition:'box-shadow .3s ease'}}/>
+          <span style={{color:pal.c,fontSize:8,letterSpacing:'.08em',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase'}}>{pal.name}</span>
+        </div>
+        <div style={{position:'absolute',bottom:10,left:12,right:12,transform:hov?'translateY(-3px)':'translateY(0)',transition:'transform .4s cubic-bezier(.22,1,.36,1)'}}>
+          <div style={{color:rgba(pal.c,.7),fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:3}}>{char.series}</div>
+          <h3 style={{color:'#f0e8d8',fontSize:15,fontFamily:"'Cinzel',serif",fontWeight:700,lineHeight:1.2}}>{char.name}</h3>
+          <div style={{color:'#7788aa',fontSize:10,fontFamily:"'DM Sans',sans-serif",fontStyle:'italic',marginTop:2}}>{char.role}</div>
         </div>
       </div>
-      <div style={{
-        padding:'12px 14px',
-        maxHeight: open?'300px':'0',
-        overflow:'hidden',
-        transition:'max-height .35s ease',
-      }}>
-        <div style={{marginBottom:8}}>
-          <div style={{color:rgba(pal.color,.7),fontSize:9,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:3}}>Poderes</div>
-          <div style={{color:'#9ab0c8',fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{char.power}</div>
-        </div>
-        <div style={{marginBottom:8}}>
-          <div style={{color:rgba(pal.color,.7),fontSize:9,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:3}}>Carácter</div>
-          <p style={{color:'#8899bb',fontSize:11,lineHeight:1.6,fontFamily:"'DM Sans',sans-serif"}}>{char.trait}</p>
-        </div>
-        <div style={{padding:'8px 10px',background:rgba(pal.color,.06),borderLeft:`2px solid ${rgba(pal.color,.4)}`,borderRadius:'0 6px 6px 0'}}>
-          <div style={{color:rgba(pal.color,.6),fontSize:9,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:3}}>Arco</div>
-          <p style={{color:'#8899bb',fontSize:11,lineHeight:1.55,fontFamily:"'DM Sans',sans-serif"}}>{char.arc}</p>
-        </div>
+      <div style={{padding:'10px 14px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{color:'#556677',fontSize:9,fontFamily:"'DM Sans',sans-serif",fontStyle:'italic',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{char.power}</div>
+        <span style={{color:rgba(pal.c,hov?.95:.45),fontSize:10,marginLeft:8,letterSpacing:'.1em',fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase',transform:hov?'translateX(3px)':'translateX(0)',transition:'color .25s ease, transform .35s cubic-bezier(.22,1,.36,1)',display:'inline-block'}}>Ver →</span>
       </div>
-      {!open && <div style={{padding:'0 14px 10px',color:rgba(pal.color,.4),fontSize:9,fontFamily:"'DM Sans',sans-serif"}}>clic para ver →</div>}
     </div>
   );
 }
 
-// ── World Section (libros) ────────────────────────────────
-function WorldSection({ worldId, books }) {
-  const pal=WORLD_PALETTE[worldId]||{color:'#c8b880',bg:'#050508',name:worldId};
-  const [open,setOpen]=useState(true);
+// ── Book Card ─────────────────────────────────────────────
+function BookCard({ book, img, onOpen, index=0 }) {
+  const pal = P[book.world]||{c:'#888',bg:'#050508'};
+  const [hov, setHov] = useState(false);
   return (
-    <div style={{marginBottom:40,animation:'fadeIn .5s ease'}}>
-      <div
-        onClick={()=>setOpen(o=>!o)}
-        style={{
-          display:'flex', alignItems:'center', gap:14, marginBottom:open?24:0,
-          cursor:'pointer', paddingBottom:14,
-          borderBottom:`1px solid ${rgba(pal.color,open?.25:.1)}`,
-          transition:'all .2s',
-        }}>
-        <div style={{width:10,height:10,borderRadius:'50%',background:pal.color,boxShadow:`0 0 16px ${pal.color}`,flexShrink:0}}/>
-        <div style={{flex:1}}>
-          <h2 style={{color:'#f0e8d8',fontSize:20,fontFamily:"'Cinzel',serif",fontWeight:700,letterSpacing:'.06em'}}>{pal.name}</h2>
-          <div style={{color:'#445566',fontSize:10,fontFamily:"'DM Sans',sans-serif",marginTop:2}}>
-            Esquirla: {pal.star} · {books.length} {books.length===1?'obra':'obras'}
-          </div>
+    <div onClick={onOpen} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
+      background:`linear-gradient(160deg,rgba(10,12,24,.95),${pal.bg})`,
+      border:`1px solid ${rgba(pal.c, hov?.5:.18)}`,
+      borderLeft:`3px solid ${rgba(pal.c, hov?.9:.45)}`,
+      borderRadius:12, overflow:'hidden', cursor:'pointer',
+      boxShadow: hov ? `0 14px 32px rgba(0,0,0,.6),0 0 20px ${rgba(pal.c,.18)}` : '0 2px 8px rgba(0,0,0,.3)',
+      transform: hov ? 'translateY(-6px) scale(1.015)' : 'translateY(0) scale(1)',
+      transition:'transform .45s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .35s ease',
+      animation:`fadeUp .55s cubic-bezier(.22,1,.36,1) ${Math.min(index*.04,.5)}s both`,
+      willChange:'transform,box-shadow',
+    }}>
+      <div style={{height:160, overflow:'hidden', position:'relative'}}>
+        {img
+          ? <img src={img} alt={book.title} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',transform:hov?'scale(1.08)':'scale(1)',transition:'transform .8s cubic-bezier(.22,1,.36,1)'}}/>
+          : <Placeholder color={pal.c} bg={pal.bg} icon='◈'/>
+        }
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 40%,rgba(5,5,14,.95))'}}/>
+        <div style={{position:'absolute',top:8,right:10,background:'rgba(0,0,0,.65)',backdropFilter:'blur(8px)',borderRadius:6,padding:'2px 8px',transform:hov?'translateY(-2px)':'none',transition:'transform .3s ease'}}>
+          <span style={{color:rgba(pal.c,.75),fontSize:9,fontFamily:"'DM Sans',sans-serif"}}>{book.year}</span>
         </div>
-        <span style={{color:'#334455',fontSize:18,transform:open?'rotate(0deg)':'rotate(-90deg)',transition:'transform .2s'}}>▾</span>
+        <div style={{position:'absolute',bottom:8,left:12,right:12,transform:hov?'translateY(-3px)':'translateY(0)',transition:'transform .4s cubic-bezier(.22,1,.36,1)'}}>
+          <div style={{color:rgba(pal.c,.7),fontSize:8,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:3}}>{book.series}</div>
+          <h3 style={{color:'#f0e8d8',fontSize:13,fontFamily:"'Cinzel',serif",fontWeight:700,lineHeight:1.25}}>{book.title}</h3>
+        </div>
       </div>
-      {open && (
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:16}}>
-          {books.map((b,i)=><BookCard key={b.title} book={b} world={worldId} index={i}/>)}
+      <div style={{padding:'10px 14px 12px'}}>
+        <p style={{color:'#556677',fontSize:10.5,lineHeight:1.5,fontFamily:"'DM Sans',sans-serif",overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{book.desc}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Planet Card ────────────────────────────────────────────
+function PlanetCard({ planet, img, onOpen, index=0 }) {
+  const pal = P[planet.world]||{c:'#888',bg:'#050508'};
+  const [hov, setHov] = useState(false);
+  return (
+    <div onClick={onOpen} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
+      background:`linear-gradient(145deg,rgba(8,10,20,.98),${pal.bg})`,
+      border:`1px solid ${rgba(pal.c, hov?.55:.2)}`,
+      borderRadius:14, overflow:'hidden', cursor:'pointer',
+      boxShadow: hov ? `0 16px 40px rgba(0,0,0,.65),0 0 28px ${rgba(pal.c,.22)}` : '0 2px 10px rgba(0,0,0,.35)',
+      transform: hov ? 'translateY(-7px) scale(1.012)' : 'translateY(0) scale(1)',
+      transition:'transform .5s cubic-bezier(.22,1,.36,1), box-shadow .4s ease, border-color .35s ease',
+      animation:`fadeUp .55s cubic-bezier(.22,1,.36,1) ${Math.min(index*.05,.4)}s both`,
+      willChange:'transform,box-shadow',
+    }}>
+      {/* Planet visual */}
+      <div style={{height:220, overflow:'hidden', position:'relative'}}>
+        {img
+          ? <img src={img} alt={planet.name} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+          : (
+            /* CSS planet visual */
+            <div style={{width:'100%',height:'100%',background:`linear-gradient(135deg,${pal.bg},rgba(2,3,8,1))`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+              {/* Stars bg */}
+              {[...Array(30)].map((_,i)=>(
+                <div key={i} style={{position:'absolute',left:`${(i*37)%100}%`,top:`${(i*53)%100}%`,width:i%4===0?2:1,height:i%4===0?2:1,borderRadius:'50%',background:'rgba(255,255,255,.5)'}}/>
+              ))}
+              {/* Planet sphere */}
+              <div style={{
+                width:110, height:110, borderRadius:'50%',
+                background:`radial-gradient(circle at 35% 35%, ${rgba(pal.c,.9)}, ${rgba(pal.c,.3)} 60%, rgba(0,0,0,.8))`,
+                boxShadow:`0 0 40px ${rgba(pal.c,.4)}, inset -20px -15px 40px rgba(0,0,0,.7)`,
+                position:'relative', zIndex:2,
+              }}>
+                {/* Atmosphere rim */}
+                <div style={{position:'absolute',inset:-6,borderRadius:'50%',border:`2px solid ${rgba(pal.c,.2)}`,boxShadow:`0 0 20px ${rgba(pal.c,.15)}`}}/>
+              </div>
+            </div>
+          )
+        }
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 50%,rgba(5,5,14,.98))'}}/>
+        <div style={{position:'absolute',bottom:12,left:14}}>
+          <h3 style={{color:'#f0e8d8',fontSize:20,fontFamily:"'Cinzel',serif",fontWeight:700,letterSpacing:'.06em'}}>{planet.name}</h3>
+          <div style={{color:rgba(pal.c,.7),fontSize:10,fontFamily:"'DM Sans',sans-serif",marginTop:3}}>Esquirla: {planet.shard}</div>
         </div>
-      )}
+      </div>
+      {/* Body */}
+      <div style={{padding:'14px 16px 16px'}}>
+        <div style={{color:'#445566',fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:6}}>Sistema mágico</div>
+        <div style={{color:pal.c,fontSize:11,fontFamily:"'DM Sans',sans-serif",marginBottom:10}}>{planet.magic}</div>
+        <p style={{color:'#7788aa',fontSize:11.5,lineHeight:1.65,fontFamily:"'DM Sans',sans-serif",overflow:'hidden',display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical'}}>{planet.desc}</p>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',marginTop:10}}>
+          <span style={{color:rgba(pal.c,hov?.85:.5),fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",transition:'color .2s'}}>Ver detalles →</span>
+        </div>
+      </div>
     </div>
   );
 }
 
 // ── Worldhopper Card ──────────────────────────────────────
-function WorldhopperCard({ wh, index }) {
-  const canvasRef=useRef(null);
-  const [hov,setHov]=useState(false);
-  const [open,setOpen]=useState(false);
-
-  useEffect(()=>{
-    if(!canvasRef.current) return;
-    drawWorldhopperCard(canvasRef.current, wh);
-  },[wh.name]);
-
+function WHCard({ wh, img, onOpen, index=0 }) {
+  const [hov, setHov] = useState(false);
   return (
-    <div
-      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      onClick={()=>setOpen(o=>!o)}
-      style={{
-        background:'rgba(5,5,12,.95)',
-        border:`1px solid ${rgba(wh.accent,open?.5:hov?.3:.16)}`,
-        borderRadius:14, overflow:'hidden', cursor:'pointer',
-        boxShadow: open?`0 12px 50px rgba(0,0,0,.7),0 0 30px ${rgba(wh.accent,.22)}`:
-                   hov?`0 6px 24px rgba(0,0,0,.5),0 0 14px ${rgba(wh.accent,.12)}`:'none',
-        transition:'all .3s cubic-bezier(.22,1,.36,1)',
-        transform: hov&&!open?'translateY(-6px)':'none',
-        animation:`fadeUp .5s ease ${index*.12}s both`,
-      }}>
-      <div style={{position:'relative',height:200,overflow:'hidden'}}>
-        <canvas ref={canvasRef} width={400} height={280}
-          style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 35%,rgba(5,5,12,.95))'}}/>
-        <div style={{position:'absolute',bottom:14,left:18,right:18}}>
-          <div style={{color:wh.accent,fontSize:9,letterSpacing:'.14em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:4,opacity:.8}}>
-            {wh.origin} · {wh.appearances.length} mundos visitados
-          </div>
-          <h3 style={{color:'#f0e8d8',fontSize:18,fontFamily:"'Cinzel',serif",fontWeight:700,lineHeight:1.2}}>{wh.name}</h3>
-          <div style={{color:'#7788aa',fontSize:11,fontFamily:"'DM Sans',sans-serif",marginTop:4,fontStyle:'italic'}}>{wh.role}</div>
+    <div onClick={onOpen} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
+      background:`linear-gradient(145deg,rgba(6,6,14,.98),rgba(2,2,8,1))`,
+      border:`1px solid ${rgba(wh.accent, hov?.55:.2)}`,
+      borderRadius:14, overflow:'hidden', cursor:'pointer',
+      boxShadow: hov ? `0 14px 36px rgba(0,0,0,.65),0 0 24px ${rgba(wh.accent,.2)}` : '0 2px 10px rgba(0,0,0,.35)',
+      transform: hov ? 'translateY(-6px) scale(1.012)' : 'translateY(0) scale(1)',
+      transition:'transform .45s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .35s ease',
+      animation:`fadeUp .55s cubic-bezier(.22,1,.36,1) ${Math.min(index*.06,.4)}s both`,
+      willChange:'transform,box-shadow',
+    }}>
+      <div style={{height:180, overflow:'hidden', position:'relative'}}>
+        {img
+          ? <img src={img} alt={wh.name} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top',display:'block',transform:hov?'scale(1.08)':'scale(1)',transition:'transform .8s cubic-bezier(.22,1,.36,1)'}}/>
+          : <Placeholder color={wh.accent} bg='#040408' icon='⟳'/>
+        }
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 40%,rgba(4,4,14,.98))'}}/>
+        <div style={{position:'absolute',top:10,left:12,background:'rgba(0,0,0,.65)',backdropFilter:'blur(8px)',borderRadius:6,padding:'3px 10px',transform:hov?'translateY(-2px)':'none',transition:'transform .3s ease'}}>
+          <span style={{color:rgba(wh.accent,.8),fontSize:8,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>ORIGEN: {wh.origin}</span>
+        </div>
+        <div style={{position:'absolute',bottom:10,left:12,transform:hov?'translateY(-3px)':'translateY(0)',transition:'transform .4s cubic-bezier(.22,1,.36,1)'}}>
+          <h3 style={{color:'#f0e8d8',fontSize:16,fontFamily:"'Cinzel',serif",fontWeight:700}}>{wh.name}</h3>
+          <div style={{color:'#7788aa',fontSize:10,fontFamily:"'DM Sans',sans-serif",fontStyle:'italic',marginTop:2}}>{wh.role}</div>
         </div>
       </div>
-
-      <div style={{padding:'14px 18px 0'}}>
-        <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
-          {wh.appearances.map(ap=>{
-            const wPal=Object.entries(WORLD_PALETTE).find(([,p])=>p.name===ap.world);
-            const wColor=wPal?wPal[1].color:'#888';
+      <div style={{padding:'12px 14px'}}>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+          {wh.worlds.slice(0,4).map(w=>{
+            const wp=Object.values(P).find(p=>p.name===w)||{c:'#888'};
             return (
-              <div key={ap.world} style={{
-                background:rgba(wColor,.08),border:`1px solid ${rgba(wColor,.25)}`,
-                borderRadius:6,padding:'4px 10px',
-                display:'flex',alignItems:'center',gap:5,
-              }}>
-                <div style={{width:5,height:5,borderRadius:'50%',background:wColor,boxShadow:`0 0 6px ${wColor}`}}/>
-                <span style={{color:wColor,fontSize:9,fontFamily:"'DM Sans',sans-serif",letterSpacing:'.05em'}}>{ap.world}</span>
-                <span style={{color:'#334455',fontSize:9,fontFamily:"'DM Sans',sans-serif"}}>({ap.alias})</span>
+              <div key={w} style={{background:rgba(wp.c,.08),border:`1px solid ${rgba(wp.c,.25)}`,borderRadius:6,padding:'3px 9px',display:'flex',alignItems:'center',gap:5}}>
+                <div style={{width:5,height:5,borderRadius:'50%',background:wp.c}}/>
+                <span style={{color:wp.c,fontSize:9,fontFamily:"'DM Sans',sans-serif"}}>{w}</span>
               </div>
             );
           })}
+          {wh.worlds.length>4 && <span style={{color:'#445566',fontSize:9,fontFamily:"'DM Sans',sans-serif",alignSelf:'center'}}>+{wh.worlds.length-4}</span>}
+        </div>
+        <div style={{textAlign:'right',marginTop:10}}>
+          <span style={{color:rgba(wh.accent,hov?.95:.4),fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",transform:hov?'translateX(3px)':'translateX(0)',transition:'color .25s ease, transform .35s cubic-bezier(.22,1,.36,1)',display:'inline-block'}}>Ver →</span>
         </div>
       </div>
-
-      <div style={{
-        padding:'0 18px',
-        maxHeight: open?'400px':'0',
-        overflow:'hidden',
-        transition:'max-height .4s ease',
-      }}>
-        <div style={{marginBottom:12}}>
-          <div style={{color:rgba(wh.accent,.6),fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>Magia acumulada</div>
-          <p style={{color:'#9ab0c8',fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{wh.magic}</p>
-        </div>
-        <div style={{marginBottom:12}}>
-          <div style={{color:rgba(wh.accent,.6),fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:8}}>Rol en cada mundo</div>
-          {wh.appearances.map(ap=>(
-            <div key={ap.world} style={{marginBottom:8,paddingLeft:12,borderLeft:`2px solid ${rgba(wh.accent,.2)}`}}>
-              <div style={{color:wh.accent,fontSize:10,fontFamily:"'DM Sans',sans-serif",marginBottom:2}}>{ap.world} — {ap.alias}</div>
-              <p style={{color:'#778899',fontSize:10.5,lineHeight:1.5,fontFamily:"'DM Sans',sans-serif"}}>{ap.role}</p>
-            </div>
-          ))}
-        </div>
-        <div style={{padding:'10px 12px',background:rgba(wh.accent,.06),borderLeft:`2px solid ${rgba(wh.accent,.4)}`,borderRadius:'0 6px 6px 0',marginBottom:14}}>
-          <div style={{color:rgba(wh.accent,.6),fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>Misterio pendiente</div>
-          <p style={{color:'#8899bb',fontSize:11,lineHeight:1.6,fontFamily:"'DM Sans',sans-serif"}}>{wh.mystery}</p>
-        </div>
-      </div>
-      <div style={{padding:'8px 18px 14px',color:rgba(wh.accent,.35),fontSize:9,fontFamily:"'DM Sans',sans-serif",display:open?'none':'block'}}>clic para explorar →</div>
     </div>
   );
 }
 
-// ── HOID Section (special) ─────────────────────────────────
-function HoidSection() {
-  const hoid=WORLDHOPPERS[0];
-  const canvasRef=useRef(null);
-  const [tab,setTab]=useState('mundos');
-
+// ── Modal ──────────────────────────────────────────────
+function Modal({ modal, imgs, onClose }) {
   useEffect(()=>{
-    if(!canvasRef.current) return;
-    drawWorldhopperCard(canvasRef.current, hoid);
-  },[]);
+    if (!modal) return;
+    const onKey = e => { if (e.key==='Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow='hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow=''; };
+  },[modal,onClose]);
+  if (!modal) return null;
 
-  const tabs=[
-    {id:'mundos',label:'Sus Mundos'},
-    {id:'magia',label:'Magia'},
-    {id:'misterio',label:'Misterio'},
-  ];
-
-  const hoidFacts = [
-    { icon:'✦', fact:'Presenció la Fragmentación original de Adona — el evento que creó las Esquirlas.' },
-    { icon:'◈', fact:'Ha recolectado Investidura de al menos 6 sistemas de magia diferentes.' },
-    { icon:'◉', fact:'Es uno de los 17 originales de Yolen — el único mundo donde nacieron humanos antes de las Esquirlas.' },
-    { icon:'⟳', fact:'Su inmortalidad no proviene de una Esquirla — es algo anterior y más misterioso.' },
-    { icon:'✦', fact:'Su nombre real es desconocido. "Hoid" es solo el alias más frecuente.' },
-    { icon:'◈', fact:'Conecta con cada protagonista principal en cada saga, siempre en un momento pivote.' },
-  ];
+  const { kind, item } = modal;
+  let pal, img, title, kicker, subtitle;
+  if (kind==='char') {
+    pal = P[item.world]||{c:'#888',bg:'#050508'};
+    img = imgs[ikey('personajes',item.id)];
+    title = item.name; kicker = item.series; subtitle = item.role;
+  } else if (kind==='book') {
+    pal = P[item.world]||{c:'#888',bg:'#050508'};
+    img = imgs[ikey('libros',item.id)];
+    title = item.title; kicker = `${item.series} · ${item.year}`; subtitle = pal.name;
+  } else if (kind==='planet') {
+    pal = P[item.world]||{c:'#888',bg:'#050508'};
+    img = imgs[ikey('mundos',item.id)];
+    title = item.name; kicker = 'Sistema planetario'; subtitle = `Esquirla · ${item.shard}`;
+  } else if (kind==='wh') {
+    pal = { c: item.accent, bg:'#040408', name: item.origin };
+    img = imgs[ikey('saltamundo',item.id)];
+    title = item.name; kicker = 'Saltamundo'; subtitle = item.role;
+  }
 
   return (
-    <div>
-      <div style={{
-        position:'relative',borderRadius:16,overflow:'hidden',marginBottom:32,
-        background:'#030308',
-        border:`1px solid ${rgba(hoid.accent,.3)}`,
-        boxShadow:`0 0 60px ${rgba(hoid.accent,.1)},0 20px 60px rgba(0,0,0,.6)`,
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, zIndex:1000,
+      background:'rgba(2,3,8,.86)', backdropFilter:'blur(14px)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding:'40px 24px', animation:'fadeIn .25s ease',
+      overflowY:'auto',
+    }}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        position:'relative', width:'100%', maxWidth: 900,
+        background:`linear-gradient(165deg,rgba(10,12,22,.98),${pal.bg})`,
+        border:`1px solid ${rgba(pal.c,.35)}`,
+        borderRadius:18, overflow:'hidden',
+        boxShadow:`0 30px 80px rgba(0,0,0,.7), 0 0 60px ${rgba(pal.c,.18)}`,
+        animation:'modalIn .32s cubic-bezier(.22,1,.36,1)',
       }}>
-        <div style={{height:280,position:'relative'}}>
-          <canvas ref={canvasRef} width={1200} height={400} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-          <div style={{position:'absolute',inset:0,background:'linear-gradient(to right, rgba(3,3,8,.0) 40%, rgba(3,3,8,.95) 75%)'}}/>
-          <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 30%, rgba(3,3,8,.98))'}}/>
-        </div>
+        <button onClick={onClose} style={{
+          position:'absolute', top:14, right:14, zIndex:5,
+          width:36, height:36, borderRadius:'50%',
+          background:'rgba(0,0,0,.55)', border:`1px solid ${rgba(pal.c,.25)}`,
+          color:rgba(pal.c,.9), fontSize:18, cursor:'pointer',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          backdropFilter:'blur(8px)',
+        }}>×</button>
 
-        <div style={{position:'absolute',top:0,right:0,bottom:160,width:'45%',display:'flex',flexDirection:'column',justifyContent:'center',padding:'0 40px'}}>
-          <div style={{color:hoid.accent,fontSize:9,letterSpacing:'.22em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:10,opacity:.8}}>
-            YOLEN · EL VIAJERO ETERNO
+        <div style={{display:'flex', flexDirection:'row', minHeight:320}}>
+          <div style={{width:360, flexShrink:0, position:'relative', overflow:'hidden', background:pal.bg}}>
+            {img
+              ? <img src={img} alt={title} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top',display:'block',minHeight:320}}/>
+              : (
+                <div style={{width:'100%',height:'100%',minHeight:320,background:`linear-gradient(135deg,${rgba(pal.c,.25)},rgba(2,3,8,1))`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+                  {[...Array(50)].map((_,i)=>(<div key={i} style={{position:'absolute',left:`${(i*37)%100}%`,top:`${(i*53)%100}%`,width:i%5===0?2:1,height:i%5===0?2:1,borderRadius:'50%',background:'rgba(255,255,255,.55)'}}/>))}
+                  <div style={{width:120,height:120,borderRadius:'50%',background:`radial-gradient(circle at 35% 35%,${rgba(pal.c,.85)},${rgba(pal.c,.25)} 60%,rgba(0,0,0,.85))`,boxShadow:`0 0 50px ${rgba(pal.c,.4)},inset -20px -15px 40px rgba(0,0,0,.7)`,position:'relative',zIndex:2}}>
+                    <div style={{position:'absolute',inset:-8,borderRadius:'50%',border:`2px solid ${rgba(pal.c,.25)}`}}/>
+                  </div>
+                </div>
+              )
+            }
           </div>
-          <h1 style={{color:'#f5efe0',fontSize:38,fontFamily:"'Cinzel',serif",fontWeight:900,letterSpacing:'.08em',margin:'0 0 8px',textShadow:`0 0 40px ${rgba(hoid.accent,.4)}`}}>
-            HOID
-          </h1>
-          <div style={{color:'#7788aa',fontSize:13,fontFamily:"'DM Sans',sans-serif",fontStyle:'italic',marginBottom:20,lineHeight:1.5}}>
-            Cephandrius Maxtori · Wit · Ala · Drifter · Malasei
-          </div>
-          <blockquote style={{
-            color:hoid.accent,fontSize:12,fontFamily:"'DM Sans',sans-serif",fontStyle:'italic',
-            lineHeight:1.7,borderLeft:`2px solid ${rgba(hoid.accent,.5)}`,
-            paddingLeft:14,opacity:.9,
-          }}>
-            {hoid.quote}
-          </blockquote>
-        </div>
 
-        <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'20px 32px',background:'rgba(3,3,8,.85)',backdropFilter:'blur(10px)',borderTop:`1px solid ${rgba(hoid.accent,.15)}`}}>
-          <div style={{display:'flex',gap:32,alignItems:'center'}}>
-            <div>
-              <div style={{color:'#334455',fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>Origen</div>
-              <div style={{color:hoid.accent,fontSize:12,fontFamily:"'DM Sans',sans-serif"}}>Yolen (desconocido)</div>
+          <div style={{flex:1, padding:'40px 36px 28px', display:'flex', flexDirection:'column'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+              <div style={{width:6,height:6,borderRadius:'50%',background:pal.c,boxShadow:`0 0 8px ${pal.c}`}}/>
+              <span style={{color:rgba(pal.c,.75),fontSize:9,letterSpacing:'.2em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>{kicker}</span>
             </div>
-            <div>
-              <div style={{color:'#334455',fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>Mundos visitados</div>
-              <div style={{color:hoid.accent,fontSize:12,fontFamily:"'DM Sans',sans-serif"}}>{hoid.appearances.length}+ documentados</div>
-            </div>
-            <div>
-              <div style={{color:'#334455',fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>Sistemas de magia</div>
-              <div style={{color:hoid.accent,fontSize:12,fontFamily:"'DM Sans',sans-serif"}}>6+ activos</div>
-            </div>
-            <div>
-              <div style={{color:'#334455',fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>Inmortalidad</div>
-              <div style={{color:hoid.accent,fontSize:12,fontFamily:"'DM Sans',sans-serif"}}>Anterior a las Esquirlas</div>
+            <h2 style={{color:'#f5efe0',fontSize:30,fontFamily:"'Cinzel',serif",fontWeight:800,letterSpacing:'.04em',lineHeight:1.1,margin:'0 0 8px',textShadow:`0 0 30px ${rgba(pal.c,.3)}`}}>{title}</h2>
+            <div style={{color:'#8899bb',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontStyle:'italic',marginBottom:18}}>{subtitle}</div>
+
+            {kind==='char' && (
+              <div>
+                <ModalRow label="Poderes" value={item.power} color={pal.c}/>
+                <ModalRow label="Carácter" value={item.trait} color={pal.c}/>
+                <div style={{marginTop:16,padding:'14px 16px',background:rgba(pal.c,.06),borderLeft:`2px solid ${rgba(pal.c,.5)}`,borderRadius:'0 8px 8px 0'}}>
+                  <div style={{color:rgba(pal.c,.65),fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:6}}>Arco narrativo</div>
+                  <p style={{color:'#9ab0c8',fontSize:13,lineHeight:1.7,fontFamily:"'DM Sans',sans-serif"}}>{item.arc}</p>
+                </div>
+              </div>
+            )}
+
+            {kind==='book' && (
+              <p style={{color:'#9ab0c8',fontSize:13.5,lineHeight:1.8,fontFamily:"'DM Sans',sans-serif"}}>{item.desc}</p>
+            )}
+
+            {kind==='planet' && (
+              <div>
+                <ModalRow label="Sistema mágico" value={item.magic} color={pal.c}/>
+                <p style={{color:'#9ab0c8',fontSize:13,lineHeight:1.75,fontFamily:"'DM Sans',sans-serif",marginTop:14}}>{item.desc}</p>
+                {item.detail && (
+                  <div style={{marginTop:14,padding:'14px 16px',background:rgba(pal.c,.06),borderLeft:`2px solid ${rgba(pal.c,.5)}`,borderRadius:'0 8px 8px 0'}}>
+                    <p style={{color:'#9ab0c8',fontSize:12.5,lineHeight:1.7,fontFamily:"'DM Sans',sans-serif"}}>{item.detail}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {kind==='wh' && (
+              <div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:14}}>
+                  {item.worlds.map(w=>{
+                    const wp=Object.values(P).find(p=>p.name===w)||{c:'#888'};
+                    return (
+                      <div key={w} style={{background:rgba(wp.c,.09),border:`1px solid ${rgba(wp.c,.28)}`,borderRadius:6,padding:'4px 11px',display:'flex',alignItems:'center',gap:6}}>
+                        <div style={{width:5,height:5,borderRadius:'50%',background:wp.c}}/>
+                        <span style={{color:wp.c,fontSize:10,fontFamily:"'DM Sans',sans-serif"}}>{w}</span>
+                        {item.aliases&&item.aliases[w] && <span style={{color:'#445566',fontSize:9,fontFamily:"'DM Sans',sans-serif"}}>· {item.aliases[w]}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <ModalRow label="Magia" value={item.magic} color={pal.c}/>
+                <div style={{marginTop:16,padding:'14px 16px',background:rgba(pal.c,.06),borderLeft:`2px solid ${rgba(pal.c,.5)}`,borderRadius:'0 8px 8px 0'}}>
+                  <div style={{color:rgba(pal.c,.65),fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:6}}>Misterio</div>
+                  <p style={{color:'#9ab0c8',fontSize:13,lineHeight:1.7,fontFamily:"'DM Sans',sans-serif"}}>{item.mystery}</p>
+                </div>
+              </div>
+            )}
+
+            <div style={{marginTop:24,paddingTop:18,display:'flex',gap:10,alignItems:'center',justifyContent:'flex-end',borderTop:`1px solid ${rgba(pal.c,.1)}`}}>
+              <a href="Imagenes.html" style={{color:rgba(pal.c,.7),fontSize:10,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none',background:rgba(pal.c,.08),border:`1px solid ${rgba(pal.c,.25)}`,borderRadius:7,padding:'8px 16px'}}>
+                {img?'Cambiar imagen':'+ Subir imagen'}
+              </a>
+              <button onClick={onClose} style={{color:'#7788aa',fontSize:10,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",background:'none',border:'1px solid rgba(120,140,180,.18)',borderRadius:7,padding:'8px 16px',cursor:'pointer'}}>Cerrar</button>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12,marginBottom:32}}>
-        {hoidFacts.map((f,i)=>(
-          <div key={i} style={{
-            background:'rgba(8,8,16,.9)',border:`1px solid ${rgba(hoid.accent,.15)}`,
-            borderRadius:10,padding:'14px 16px',
-            display:'flex',gap:12,alignItems:'flex-start',
-            animation:`fadeUp .4s ease ${i*.07}s both`,
-          }}>
-            <span style={{color:hoid.accent,fontSize:14,flexShrink:0,marginTop:1}}>{f.icon}</span>
-            <p style={{color:'#8899bb',fontSize:11.5,lineHeight:1.65,fontFamily:"'DM Sans',sans-serif"}}>{f.fact}</p>
+function ModalRow({ label, value, color }) {
+  return (
+    <div style={{marginBottom:10,display:'flex',gap:10,alignItems:'baseline'}}>
+      <span style={{color:rgba(color,.6),fontSize:9,letterSpacing:'.14em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",minWidth:110,flexShrink:0}}>{label}</span>
+      <span style={{color:'#bccae0',fontSize:13,fontFamily:"'DM Sans',sans-serif",lineHeight:1.5}}>{value}</span>
+    </div>
+  );
+}
+
+// ── HOID Full Section ─────────────────────────────────────
+function HoidSection({ imgs }) {
+  const [tab, setTab] = useState('mundos');
+  const heroImg = imgs[ikey('hoid','hoid-general')];
+  const acc = '#c8b880';
+
+  return (
+    <div>
+      {/* Hero */}
+      <div style={{
+        background:'rgba(6,6,12,.98)',border:`1px solid ${rgba(acc,.25)}`,
+        borderRadius:16,overflow:'hidden',marginBottom:28,
+        boxShadow:`0 0 60px ${rgba(acc,.08)},0 20px 60px rgba(0,0,0,.5)`,
+      }}>
+        <div style={{display:'flex',flexDirection:'row',minHeight:220}}>
+          {/* Left: image or visual */}
+          <div style={{width:280,flexShrink:0,position:'relative',overflow:'hidden'}}>
+            {heroImg
+              ? <img src={heroImg} alt="Hoid" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'top',display:'block'}}/>
+              : (
+                <div style={{width:'100%',height:'100%',background:'linear-gradient(135deg,rgba(30,25,10,.9),rgba(4,4,8,1))',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+                  {/* Stars */}
+                  {[...Array(40)].map((_,i)=>(<div key={i} style={{position:'absolute',left:`${(i*37)%100}%`,top:`${(i*53)%100}%`,width:i%5===0?2:1,height:i%5===0?2:1,borderRadius:'50%',background:'rgba(255,255,255,.6)'}}/>))}
+                  {/* Central glow */}
+                  <div style={{width:80,height:80,borderRadius:'50%',background:`radial-gradient(circle, ${rgba(acc,.5)}, transparent 70%)`,position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)'}}/>
+                  <div style={{width:40,height:40,borderRadius:'50%',border:`1.5px solid ${rgba(acc,.6)}`,position:'relative',zIndex:2}}/>
+                </div>
+              )
+            }
+            <div style={{position:'absolute',inset:0,background:'linear-gradient(to right,transparent 60%,rgba(6,6,12,.98))'}}/>
+          </div>
+          {/* Right: info */}
+          <div style={{flex:1,padding:'28px 32px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+            <div style={{color:acc,fontSize:9,letterSpacing:'.22em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:8,opacity:.8}}>YOLEN · EL VIAJERO ETERNO</div>
+            <h1 style={{color:'#f5efe0',fontSize:42,fontFamily:"'Cinzel',serif",fontWeight:900,letterSpacing:'.08em',margin:'0 0 6px',textShadow:`0 0 40px ${rgba(acc,.4)}`}}>HOID</h1>
+            <div style={{color:'#7788aa',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontStyle:'italic',marginBottom:18}}>
+              Cephandrius Maxtori · Wit · Ala · Drifter · Malasei
+            </div>
+            <blockquote style={{color:rgba(acc,.85),fontSize:12,fontFamily:"'DM Sans',sans-serif",fontStyle:'italic',lineHeight:1.7,borderLeft:`2px solid ${rgba(acc,.4)}`,paddingLeft:14,maxWidth:500}}>
+              "He vivido durante siglos y lo único que he aprendido es que las personas como tú —las que se preocupan— son las más peligrosas de todas."
+            </blockquote>
+          </div>
+        </div>
+        {/* Stats bar */}
+        <div style={{borderTop:`1px solid ${rgba(acc,.12)}`,display:'flex',gap:0}}>
+          {[['Origen','Yolen (desconocido)'],['Mundos visitados','6+ documentados'],['Sistemas de magia','6+ activos'],['Inmortalidad','Anterior a las Esquirlas']].map(([l,v],i)=>(
+            <div key={l} style={{flex:1,padding:'14px 20px',borderRight:i<3?`1px solid ${rgba(acc,.08)}`:'none'}}>
+              <div style={{color:'#334455',fontSize:8,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>{l}</div>
+              <div style={{color:rgba(acc,.8),fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Facts */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12,marginBottom:28}}>
+        {[
+          'Presenció la Fragmentación original de Adona — el evento que creó las 16 Esquirlas.',
+          'Es uno de los 17 originales de Yolen — el único planeta donde nacieron humanos antes de las Esquirlas.',
+          'Rechazó convertirse en portador de una Esquirla. Eligió algo diferente.',
+          'Su inmortalidad no proviene de ninguna Esquirla conocida — es algo anterior y más misterioso.',
+          'Ha recolectado Investidura de al menos 6 sistemas de magia distintos.',
+          'Conecta con cada protagonista principal en cada saga, siempre en un momento pivote.',
+        ].map((f,i)=>(
+          <div key={i} style={{background:'rgba(8,8,16,.9)',border:`1px solid ${rgba(acc,.14)}`,borderRadius:10,padding:'14px 16px',display:'flex',gap:12,alignItems:'flex-start',animation:`fadeUp .4s ease ${i*.07}s both`}}>
+            <span style={{color:acc,fontSize:14,flexShrink:0}}>✦</span>
+            <p style={{color:'#8899bb',fontSize:11.5,lineHeight:1.65,fontFamily:"'DM Sans',sans-serif"}}>{f}</p>
           </div>
         ))}
       </div>
 
-      <div style={{borderBottom:`1px solid rgba(255,255,255,.08)`,marginBottom:24,display:'flex',gap:0}}>
-        {tabs.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{
-            background:'none',border:'none',cursor:'pointer',
-            padding:'8px 20px',fontSize:11,letterSpacing:'.08em',textTransform:'uppercase',
-            fontFamily:"'DM Sans',sans-serif",
-            color:tab===t.id?hoid.accent:'#445566',
-            borderBottom:tab===t.id?`2px solid ${hoid.accent}`:'2px solid transparent',
+      {/* Tabs */}
+      <div style={{borderBottom:`1px solid rgba(255,255,255,.08)`,marginBottom:20,display:'flex',gap:0}}>
+        {[['mundos','Sus Mundos'],['magia','Magia'],['misterio','Misterio']].map(([id,label])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{
+            background:'none',border:'none',cursor:'pointer',padding:'8px 20px',
+            fontSize:11,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",
+            color:tab===id?acc:'#445566',
+            borderBottom:tab===id?`2px solid ${acc}`:'2px solid transparent',
             transition:'all .18s',marginBottom:-1,
-          }}>{t.label}</button>
+          }}>{label}</button>
         ))}
       </div>
 
       {tab==='mundos' && (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:14}}>
-          {hoid.appearances.map((ap,i)=>{
-            const wPal=Object.entries(WORLD_PALETTE).find(([,p])=>p.name===ap.world);
-            const wColor=wPal?wPal[1].color:'#888';
+          {HOID_APPEARANCES.map((ap,i)=>{
+            const worldName=ap.world.charAt(0).toUpperCase()+ap.world.slice(1);
             return (
               <div key={ap.world} style={{
-                background:'rgba(6,6,14,.9)',border:`1px solid ${rgba(wColor,.22)}`,
-                borderLeft:`3px solid ${wColor}`,borderRadius:10,padding:'16px 18px',
-                animation:`fadeUp .4s ease ${i*.08}s both`,
+                background:'rgba(6,6,14,.9)',border:`1px solid ${rgba(ap.color,.22)}`,
+                borderLeft:`3px solid ${ap.color}`,borderRadius:10,padding:'16px 18px',
+                animation:`fadeUp .4s ease ${i*.07}s both`,
               }}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-                  <div style={{width:7,height:7,borderRadius:'50%',background:wColor,boxShadow:`0 0 10px ${wColor}`,flexShrink:0}}/>
-                  <span style={{color:wColor,fontSize:11,fontFamily:"'Cinzel',serif",fontWeight:600}}>{ap.world}</span>
-                  <span style={{marginLeft:'auto',color:'#334455',fontSize:9,fontFamily:"'DM Sans',sans-serif",letterSpacing:'.06em'}}>como {ap.alias}</span>
+                  <div style={{width:7,height:7,borderRadius:'50%',background:ap.color,boxShadow:`0 0 10px ${ap.color}`}}/>
+                  <span style={{color:ap.color,fontSize:12,fontFamily:"'Cinzel',serif",fontWeight:600}}>{worldName}</span>
+                  <span style={{marginLeft:'auto',color:'#334455',fontSize:9,fontFamily:"'DM Sans',sans-serif"}}>como {ap.alias}</span>
                 </div>
                 <p style={{color:'#7788aa',fontSize:11.5,lineHeight:1.6,fontFamily:"'DM Sans',sans-serif"}}>{ap.role}</p>
               </div>
@@ -847,32 +665,33 @@ function HoidSection() {
       )}
 
       {tab==='magia' && (
-        <div style={{background:'rgba(6,6,14,.9)',border:`1px solid ${rgba(hoid.accent,.2)}`,borderRadius:12,padding:'24px 28px',animation:'fadeIn .3s ease'}}>
-          <p style={{color:'#8899bb',fontSize:12,lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",marginBottom:16}}>{hoid.magic}</p>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            {[['Alomancia','Scadrial · Quema metales para poderes'],['Despertar','Nalthis · Anima objetos con Aliento'],['Surgebinding','Roshar · Vínculo con spren + Stormlight'],['Cantamundos','Yolen · Arte verbal de poder desconocido'],['Aon Dor','Sel · Investidura geográfica de Elantris'],['Otros','Al menos 3 sistemas más no identificados']].map(([m,d])=>(
-              <div key={m} style={{padding:'10px 14px',background:rgba(hoid.accent,.06),borderRadius:8}}>
-                <div style={{color:hoid.accent,fontSize:10,fontFamily:"'Cinzel',serif",marginBottom:3}}>{m}</div>
-                <div style={{color:'#7788aa',fontSize:10.5,fontFamily:"'DM Sans',sans-serif"}}>{d}</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:12,animation:'fadeIn .3s ease'}}>
+          {HOID_MAGIC.map((m,i)=>(
+            <div key={m.name} style={{background:'rgba(8,8,16,.9)',border:`1px solid ${rgba(acc,.15)}`,borderRadius:10,padding:'14px 16px',animation:`fadeUp .3s ease ${i*.06}s both`}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{color:acc,fontSize:12,fontFamily:"'Cinzel',serif",fontWeight:600}}>{m.name}</span>
+                <span style={{color:'#334455',fontSize:9,fontFamily:"'DM Sans',sans-serif",letterSpacing:'.06em'}}>{m.origin}</span>
               </div>
-            ))}
-          </div>
+              <p style={{color:'#778899',fontSize:11,lineHeight:1.55,fontFamily:"'DM Sans',sans-serif"}}>{m.desc}</p>
+            </div>
+          ))}
         </div>
       )}
 
       {tab==='misterio' && (
         <div style={{animation:'fadeIn .3s ease'}}>
-          <p style={{color:'#8899bb',fontSize:13,lineHeight:1.75,fontFamily:"'DM Sans',sans-serif",borderLeft:`2px solid ${rgba(hoid.accent,.4)}`,paddingLeft:20,marginBottom:24}}>{hoid.mystery}</p>
-          <div style={{background:'rgba(6,6,14,.9)',border:`1px solid ${rgba(hoid.accent,.2)}`,borderRadius:12,padding:'20px 24px'}}>
-            <div style={{color:hoid.accent,fontSize:10,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>Teorías de los lectores</div>
+          <p style={{color:'#8899bb',fontSize:13,lineHeight:1.75,fontFamily:"'DM Sans',sans-serif",borderLeft:`2px solid ${rgba(acc,.4)}`,paddingLeft:20,marginBottom:24}}>
+            ¿Por qué es inmortal? ¿Qué perdió en Yolen que lo impulsa a recolectar magia de cada mundo? ¿Es el héroe secreto del Cosmere o el mayor peligro latente? Ninguna de estas preguntas tiene respuesta confirmada aún.
+          </p>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
             {[
-              'Hoid fue uno de los 16 candidatos originales a convertirse en portadores de las Esquirlas en la Fragmentación. Rechazó el poder.',
-              'Su inmortalidad proviene de un objeto pre-Fragmentación de Yolen, posiblemente relacionado con los Dawnshard.',
-              'Su objetivo final podría ser reunir suficiente Investidura para enfrentarse a Odium o prevenir una amenaza mayor.',
+              {t:'La Fragmentación',d:'Hoid fue uno de los 16 candidatos a convertirse en portadores de las Esquirlas. Rechazó el poder en el último momento. ¿Por qué?'},
+              {t:'Los 17 Originales',d:'Existe un grupo llamado los 17 (o Diecisiete). Hoid ya no pertenece a ellos. La ruptura fue dramática. El grupo activamente lo persigue.'},
+              {t:'Su objetivo final',d:'Podría estar reuniendo suficiente Investidura para enfrentarse a Odium, o prevenir una amenaza mayor aún no revelada en los libros publicados.'},
             ].map((t,i)=>(
-              <div key={i} style={{display:'flex',gap:10,marginBottom:i<2?12:0,paddingBottom:i<2?12:0,borderBottom:i<2?`1px solid rgba(255,255,255,.06)`:'none'}}>
-                <span style={{color:rgba(hoid.accent,.5),fontSize:12,flexShrink:0,marginTop:1}}>◈</span>
-                <p style={{color:'#8899bb',fontSize:11.5,lineHeight:1.65,fontFamily:"'DM Sans',sans-serif"}}>{t}</p>
+              <div key={t.t} style={{background:'rgba(8,8,16,.9)',border:`1px solid ${rgba(acc,.15)}`,borderRadius:10,padding:'16px 18px'}}>
+                <div style={{color:acc,fontSize:12,fontFamily:"'Cinzel',serif",marginBottom:8}}>◈ {t.t}</div>
+                <p style={{color:'#7788aa',fontSize:11.5,lineHeight:1.6,fontFamily:"'DM Sans',sans-serif"}}>{t.d}</p>
               </div>
             ))}
           </div>
@@ -882,39 +701,94 @@ function HoidSection() {
   );
 }
 
-// ── Characters Section ─────────────────────────────────────
-function CharactersSection() {
-  const [world, setWorld] = useState('roshar');
-  const pal = WORLD_PALETTE[world]||{color:'#c8b880'};
-  const worlds = Object.keys(CHARACTERS);
+// ── Nav Sidebar ───────────────────────────────────────────
+const SECTIONS = [
+  {id:'hoid',       icon:'✦', label:'Hoid'},
+  {id:'personajes', icon:'◉', label:'Personajes'},
+  {id:'libros',     icon:'◈', label:'Libros'},
+  {id:'planetas',   icon:'◐', label:'Planetas'},
+  {id:'saltamundo', icon:'⟳', label:'Saltamundo'},
+];
 
+function Sidebar({ active, onSelect }) {
   return (
-    <div>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:28}}>
-        {worlds.map(w=>{
-          const p=WORLD_PALETTE[w]||{color:'#888',name:w};
-          const active=world===w;
-          return (
-            <button key={w} onClick={()=>setWorld(w)} style={{
-              display:'flex',alignItems:'center',gap:7,
-              background: active?rgba(p.color,.12):'rgba(255,255,255,.03)',
-              border:`1px solid ${active?rgba(p.color,.4):'rgba(255,255,255,.08)'}`,
-              borderRadius:8,padding:'7px 14px',cursor:'pointer',
-              color: active?p.color:'#445566',
-              fontSize:11,letterSpacing:'.06em',fontFamily:"'DM Sans',sans-serif",
-              transition:'all .2s',
-            }}>
-              <div style={{width:6,height:6,borderRadius:'50%',background:p.color,opacity:active?1:.4,boxShadow:active?`0 0 8px ${p.color}`:'none'}}/>
-              {p.name}
-            </button>
-          );
-        })}
-      </div>
+    <div style={{
+      position:'fixed',left:0,top:0,bottom:0,width:52,
+      background:'rgba(1,3,6,.96)',backdropFilter:'blur(20px)',
+      borderRight:'1px solid rgba(255,255,255,.06)',
+      display:'flex',flexDirection:'column',alignItems:'center',
+      paddingTop:72,gap:6,zIndex:100,
+    }}>
+      {SECTIONS.map(s=>(
+        <button key={s.id} onClick={()=>onSelect(s.id)} title={s.label} style={{
+          width:38,height:38,borderRadius:9,
+          background:active===s.id?'rgba(200,184,128,.1)':'none',
+          border:active===s.id?'1px solid rgba(200,184,128,.3)':'1px solid transparent',
+          color:active===s.id?'#c8b880':'#445566',
+          cursor:'pointer',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',
+          transition:'all .2s',
+        }}>{s.icon}</button>
+      ))}
+      <div style={{flex:1}}/>
+      <a href="Imagenes.html" title="Gestionar Imágenes" style={{
+        width:38,height:38,borderRadius:9,
+        border:'1px solid rgba(255,255,255,.08)',
+        color:'#445566',display:'flex',alignItems:'center',justifyContent:'center',
+        fontSize:14,textDecoration:'none',transition:'all .2s',marginBottom:6,
+      }}>+</a>
+      <a href="Cosmere.html" title="Atlas" style={{
+        width:38,height:38,borderRadius:9,
+        border:'1px solid rgba(255,255,255,.08)',
+        color:'#334455',display:'flex',alignItems:'center',justifyContent:'center',
+        fontSize:12,textDecoration:'none',transition:'all .2s',marginBottom:16,
+      }}>↗</a>
+    </div>
+  );
+}
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:18}}>
-        {(CHARACTERS[world]||[]).map((char,i)=>(
-          <CharacterCard key={char.name} char={char} world={world} index={i}/>
-        ))}
+// ── World filter row ──────────────────────────────────────
+function WorldFilter({ worlds, active, onChange, allLabel='Todos' }) {
+  return (
+    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:24}}>
+      <FilterBtn label={allLabel} active={active==='all'} color='#c8b880' onClick={()=>onChange('all')}/>
+      {worlds.map(w=>{
+        const p=P[w]||{c:'#888',name:w};
+        return <FilterBtn key={w} label={p.name} active={active===w} color={p.c} onClick={()=>onChange(w)}/>;
+      })}
+    </div>
+  );
+}
+function FilterBtn({label,active,color,onClick}) {
+  return (
+    <button onClick={onClick} style={{
+      background:active?rgba(color,.1):'rgba(255,255,255,.03)',
+      border:`1px solid ${active?rgba(color,.35):'rgba(255,255,255,.08)'}`,
+      color:active?color:'#445566',borderRadius:8,padding:'6px 13px',
+      cursor:'pointer',fontSize:10,letterSpacing:'.06em',textTransform:'uppercase',
+      fontFamily:"'DM Sans',sans-serif",transition:'all .2s',
+    }}>{label}</button>
+  );
+}
+
+// ── Search ────────────────────────────────────────────────
+function Search({ value, onChange }) {
+  return (
+    <div style={{position:'relative',maxWidth:260,marginBottom:20}}>
+      <input value={value} onChange={e=>onChange(e.target.value)}
+        placeholder="Buscar..."
+        style={{width:'100%',background:'rgba(8,10,20,.9)',border:'1px solid rgba(255,255,255,.1)',borderRadius:8,padding:'8px 12px 8px 32px',color:'#e0d8c8',fontSize:11,fontFamily:"'DM Sans',sans-serif",outline:'none'}}/>
+      <span style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'#334455',fontSize:13}}>⌕</span>
+    </div>
+  );
+}
+
+// ── Section Header ─────────────────────────────────────────
+function SectionHeader({ title, count }) {
+  return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+      <div>
+        <h2 style={{color:'#f0e8d8',fontSize:22,fontFamily:"'Cinzel',serif",fontWeight:700,letterSpacing:'.04em'}}>{title}</h2>
+        <div style={{color:'#445566',fontSize:10,fontFamily:"'DM Sans',sans-serif",marginTop:3}}>{count} entradas</div>
       </div>
     </div>
   );
@@ -922,60 +796,147 @@ function CharactersSection() {
 
 // ── Main App ──────────────────────────────────────────────
 function App() {
-  const [section, setSection] = useState('hoid');
+  const [section,  setSection]  = useState('hoid');
+  const [imgs,     setImgs]     = useState(loadImgs);
+  const [wFilter,  setWFilter]  = useState('all');
+  const [search,   setSearch]   = useState('');
+  const [modal,    setModal]    = useState(null);
 
-  const sectionTitles = {
-    hoid:'Hoid — El Eterno Viajero',
-    libros:'Libros por Planeta',
-    personajes:'Personajes',
-    saltamundo:'Saltamundo',
-  };
+  // Re-read images when localStorage changes (from Imagenes.html)
+  useEffect(()=>{
+    const sync = () => setImgs(loadImgs());
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  },[]);
+
+  // Reset filters on section change
+  useEffect(()=>{ setWFilter('all'); setSearch(''); },[section]);
+
+  const filteredChars = useMemo(()=>CHARACTERS.filter(c=>{
+    if(wFilter!=='all'&&c.world!==wFilter) return false;
+    if(search&&!c.name.toLowerCase().includes(search.toLowerCase())&&!c.role.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  }),[wFilter,search]);
+
+  const filteredBooks = useMemo(()=>BOOKS.filter(b=>{
+    if(wFilter!=='all'&&b.world!==wFilter) return false;
+    if(search&&!b.title.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  }),[wFilter,search]);
+
+  const filteredPlanets = useMemo(()=>PLANETS.filter(p=>{
+    if(search&&!p.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  }),[search]);
+
+  const sectionTitle = {hoid:'Hoid — El Eterno Viajero',personajes:'Personajes',libros:'Libros por Mundo',planetas:'Planetas y Sistemas',saltamundo:'Saltamundo'}[section];
+
+  const charWorlds=[...new Set(CHARACTERS.map(c=>c.world))];
+  const bookWorlds=[...new Set(BOOKS.map(b=>b.world))];
 
   return (
     <div style={{minHeight:'100vh',background:'#010306'}}>
       <Sidebar active={section} onSelect={setSection}/>
 
-      <div style={{marginLeft:56,minHeight:'100vh'}}>
+      <div style={{marginLeft:52}}>
+        {/* Top bar */}
         <div style={{
           position:'sticky',top:0,zIndex:90,
-          background:'rgba(1,3,6,.92)',backdropFilter:'blur(20px)',
+          background:'rgba(1,3,6,.94)',backdropFilter:'blur(20px)',
           borderBottom:'1px solid rgba(255,255,255,.06)',
-          padding:'0 40px',height:56,
+          padding:'0 32px',height:54,
           display:'flex',alignItems:'center',justifyContent:'space-between',
         }}>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{color:'#334455',fontSize:10,fontFamily:"'DM Sans',sans-serif",letterSpacing:'.1em',textTransform:'uppercase'}}>Cosmere</span>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{color:'#334455',fontSize:9,letterSpacing:'.15em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>Cosmere</span>
             <span style={{color:'#223344'}}>›</span>
-            <h1 style={{color:'#c8b880',fontSize:14,fontFamily:"'Cinzel',serif",fontWeight:600,letterSpacing:'.06em'}}>{sectionTitles[section]}</h1>
+            <h1 style={{color:'#c8b880',fontSize:14,fontFamily:"'Cinzel',serif",fontWeight:600,letterSpacing:'.05em'}}>{sectionTitle}</h1>
           </div>
-          <div style={{display:'flex',gap:12,alignItems:'center'}}>
-            <a href="Guia.html" style={{color:'#445566',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none'}}>Guía de Lectura</a>
-            <a href="Cosmere.html" style={{color:'#445566',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none'}}>↗ Atlas</a>
+          <div style={{display:'flex',gap:10,alignItems:'center'}}>
+            <a href="Imagenes.html" style={{color:'#c8b880',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none',background:'rgba(200,184,128,.08)',border:'1px solid rgba(200,184,128,.22)',borderRadius:6,padding:'5px 12px'}}>+ Imágenes</a>
+            <a href="Guia.html"    style={{color:'#445566',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none'}}>Guía</a>
+            <a href="Cosmere.html" style={{color:'#334455',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none'}}>↗ Atlas</a>
           </div>
         </div>
 
-        <div style={{padding:'36px 40px 80px'}}>
-          {section==='hoid' && <HoidSection/>}
-          {section==='libros' && (
+        {/* Content */}
+        <div style={{padding:'28px 32px 80px'}}>
+
+          {/* HOID */}
+          {section==='hoid' && <HoidSection imgs={imgs}/>}
+
+          {/* PERSONAJES */}
+          {section==='personajes' && (
             <div>
-              {WORLDS.map(w=><WorldSection key={w.id} worldId={w.id} books={w.books}/>)}
-            </div>
-          )}
-          {section==='personajes' && <CharactersSection/>}
-          {section==='saltamundo' && (
-            <div>
-              <p style={{color:'#445566',fontSize:12,fontFamily:"'DM Sans',sans-serif",marginBottom:28,maxWidth:600,lineHeight:1.7}}>
-                Los Saltamundo son personas que han descubierto cómo cruzar el Cosmere entre mundos, generalmente a través del Reino Cognitivo. Son raros, peligrosos, y casi todos guardan secretos que podrían reescribir la historia.
-              </p>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:20}}>
-                {WORLDHOPPERS.slice(1).map((wh,i)=><WorldhopperCard key={wh.name} wh={wh} index={i}/>)}
+              <SectionHeader title="Personajes" count={filteredChars.length}/>
+              <div style={{display:'flex',gap:12,alignItems:'flex-start',flexWrap:'wrap',marginBottom:16}}>
+                <Search value={search} onChange={setSearch}/>
+                <WorldFilter worlds={charWorlds} active={wFilter} onChange={setWFilter}/>
+              </div>
+              {filteredChars.length===0 && <Empty/>}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:16}}>
+                {filteredChars.map((c,i)=>(
+                  <CharCard key={c.id} char={c} img={imgs[ikey('personajes',c.id)]} onOpen={()=>setModal({kind:'char',item:c})} index={i}/>
+                ))}
               </div>
             </div>
           )}
+
+          {/* LIBROS */}
+          {section==='libros' && (
+            <div>
+              <SectionHeader title="Libros" count={filteredBooks.length}/>
+              <div style={{display:'flex',gap:12,alignItems:'flex-start',flexWrap:'wrap',marginBottom:16}}>
+                <Search value={search} onChange={setSearch}/>
+                <WorldFilter worlds={bookWorlds} active={wFilter} onChange={setWFilter}/>
+              </div>
+              {filteredBooks.length===0 && <Empty/>}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:16}}>
+                {filteredBooks.map((b,i)=>(
+                  <BookCard key={b.id} book={b} img={imgs[ikey('libros',b.id)]} onOpen={()=>setModal({kind:'book',item:b})} index={i}/>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* PLANETAS */}
+          {section==='planetas' && (
+            <div>
+              <SectionHeader title="Planetas y Sistemas" count={filteredPlanets.length}/>
+              <Search value={search} onChange={setSearch}/>
+              {filteredPlanets.length===0 && <Empty/>}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
+                {filteredPlanets.map((p,i)=>(
+                  <PlanetCard key={p.id} planet={p} img={imgs[ikey('mundos',p.id)]} onOpen={()=>setModal({kind:'planet',item:p})} index={i}/>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SALTAMUNDO */}
+          {section==='saltamundo' && (
+            <div>
+              <SectionHeader title="Saltamundo" count={WORLDHOPPERS.length}/>
+              <p style={{color:'#445566',fontSize:12,fontFamily:"'DM Sans',sans-serif",maxWidth:600,lineHeight:1.7,marginBottom:24}}>
+                Los Saltamundo descubrieron cómo cruzar el Reino Cognitivo entre mundos del Cosmere. Son raros, peligrosos, y casi todos ocultan secretos que podrían reescribir la historia.
+              </p>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:20}}>
+                {WORLDHOPPERS.map((wh,i)=>(
+                  <WHCard key={wh.id} wh={wh} img={imgs[ikey('saltamundo',wh.id)]} onOpen={()=>setModal({kind:'wh',item:wh})} index={i}/>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
+      <Modal modal={modal} imgs={imgs} onClose={()=>setModal(null)}/>
     </div>
   );
+}
+
+function Empty() {
+  return <div style={{textAlign:'center',padding:'60px 0',color:'#334455',fontFamily:"'DM Sans',sans-serif",fontSize:13}}>Sin resultados.</div>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);

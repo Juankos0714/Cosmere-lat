@@ -39,7 +39,10 @@
       "PowerShell($text = Get-Content \"C:\\\\Users\\\\jucar\\\\.claude\\\\projects\\\\C--Users-jucar-OneDrive-Documentos-SoftwareDevelopment-Cosmere-lat\\\\695c325b-c0ac-4b4e-99a8-cf24315b3571\\\\tool-results\\\\design.txt\" -Raw; $start = 151592; $chunk = $text.Substring\\($start, [Math]::Min\\(5000, $text.Length - $start\\)\\); Write-Host $chunk)",
       "PowerShell($text = Get-Content \"C:\\\\Users\\\\jucar\\\\.claude\\\\projects\\\\C--Users-jucar-OneDrive-Documentos-SoftwareDevelopment-Cosmere-lat\\\\695c325b-c0ac-4b4e-99a8-cf24315b3571\\\\tool-results\\\\design.txt\" -Raw; $start = 151592 + 512; $htmlStart = $text.IndexOf\\('<!DOCTYPE html>', $start\\); $nextFile = $text.IndexOf\\(\"`n`n`n\", $htmlStart + 1000\\); Write-Host \"HTML starts at: $htmlStart, approx end: $nextFile, length: $\\($nextFile - $htmlStart\\)\")",
       "PowerShell(New-Item *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(Get-ChildItem -Recurse -Filter \"*.json\" -Path src)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }
