@@ -42,7 +42,12 @@
       "Bash(npx tsc *)",
       "Bash(npx next *)",
       "Bash(Get-ChildItem -Recurse -Filter \"*.json\" -Path src)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(python -c \"import gzip, json; data = gzip.open\\('webfetch-1778784092836-jvwcqb.bin','rb'\\).read\\(\\); print\\(data[:8000].decode\\('utf-8','replace'\\)\\)\")",
+      "Bash(python -c ' *)",
+      "Read(//c/Users/jucar/**)",
+      "Bash(python3)",
+      "Bash(python *)"
     ]
   }
 }

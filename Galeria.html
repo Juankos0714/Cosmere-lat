@@ -16,12 +16,20 @@
     a, button, input { transition: color .25s ease, background .25s ease, border-color .25s ease, transform .25s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, opacity .25s ease; }
     img { will-change: transform; }
 
+    @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+    @keyframes spinReverse{from{transform:rotate(360deg);}to{transform:rotate(0deg);}}
+    @keyframes orbit{from{transform:rotate(0deg) translateX(var(--orbit-r,80px)) rotate(0deg);}to{transform:rotate(360deg) translateX(var(--orbit-r,80px)) rotate(-360deg);}}
+    @keyframes planetSpin{from{background-position:0% 0;}to{background-position:200% 0;}}
+    @keyframes twinkle{0%,100%{opacity:.3;}50%{opacity:1;}}
+    @keyframes drift{0%{transform:translateX(-50%);}100%{transform:translateX(50%);}}
     @keyframes fadeUp{
       0%{opacity:0;transform:translateY(20px) scale(.985);filter:blur(2px);}
       60%{opacity:1;filter:blur(0);}
       100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}
     }
     @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+    /* Failsafe: ensure cards are visible even if animation is suppressed by reduced-motion or any other reason */
+    .card-anim { opacity: 1; }
     @keyframes fadeInScale{
       from{opacity:0;transform:scale(.96);}
       to{opacity:1;transform:scale(1);}
@@ -53,9 +61,17 @@
       50%{box-shadow:0 0 40px rgba(200,184,128,.35);}
     }
 
-    /* Respeta preferencia de movimiento reducido */
+    /* Respeta preferencia de movimiento reducido sin ocultar contenido */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+      *, *::before, *::after {
+        transition-duration: .01ms !important;
+      }
+      [style*="animation"], [style*="animation:"] {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+      }
     }
   </style>
 </head>
@@ -163,6 +179,17 @@ const PLANETS = [
   {id:'komashi',  name:'Komashi',  world:'komashi', shard:'Virtuosismo (fragmentada)', magic:'Yoki-hijo · Pintura de Pesadillas', desc:'La Esquirla Virtuosismo fue fragmentada, dejando una herida en la realidad. Los pintores de pesadillas protegen a los humanos de criaturas que emergen de noche.', detail:'Los yoki-hijo son espíritus que habitan pozos de lava. La magia es visual y táctil.'},
   {id:'canticle', name:'Canticle', world:'canticle',shard:'Desconocida', magic:'Sunhearts · Calor solar acumulado', desc:'Un planeta abrasado por un sol extraordinariamente brillante. Los Sunhearts son cristales que absorben calor solar. Sin ellos la vida es imposible.', detail:'Sigzil/Nomad llegó aquí huyendo de una amenaza cósmica. Ocurre en el futuro lejano del Cosmere.'},
 ];
+
+const PLANET_GRADIENTS = {
+  roshar:'radial-gradient(circle at 30% 30%, #6ba8e8 0%, #3a73b8 25%, #1d4a8a 50%, #0c2a5a 75%, #051a40 100%)',
+  scadrial:'radial-gradient(circle at 30% 30%, #e8c878 0%, #c8a855 30%, #8a6e30 55%, #5a4818 80%, #2a2008 100%)',
+  sel:'radial-gradient(circle at 30% 30%, #a8e89a 0%, #7cba65 28%, #4d8a3e 55%, #2a5a22 80%, #0e2a0a 100%)',
+  nalthis:'radial-gradient(circle at 30% 30%, #f0a878 0%, #d47c4d 28%, #a85820 55%, #6a3a10 80%, #2a1505 100%)',
+  taldain:'radial-gradient(circle at 25% 30%, #f5e8a0 0%, #d4c44d 18%, #5a4818 45%, #0a0808 60%, #050506 100%)',
+  lumar:'radial-gradient(circle at 30% 30%, #b890e8 0%, #8a5fd4 28%, #5a3aa0 55%, #2e1a60 80%, #0e0828 100%)',
+  komashi:'radial-gradient(circle at 30% 30%, #e878a8 0%, #d44d8a 28%, #8a2858 55%, #4a0e2e 80%, #14040e 100%)',
+  canticle:'radial-gradient(circle at 30% 30%, #f5b890 0%, #d4804d 28%, #9a5520 55%, #5a2e10 80%, #1a0a05 100%)',
+};
 
 const WORLDHOPPERS = [
   {id:'kelsier-wh',   name:'Kelsier',          origin:'Scadrial',  accent:'#d4804d', role:'El Inmortal Involuntario',
@@ -301,6 +328,56 @@ function BookCard({ book, img, onOpen, index=0 }) {
   );
 }
 
+// ── Planet Visual ──────────────────────────────────────────
+function PlanetVisual({ planet, pal, hov }) {
+  const grad = PLANET_GRADIENTS[planet.world] || `radial-gradient(circle at 30% 30%, ${rgba(pal.c,1)} 0%, ${rgba(pal.c,.5)} 50%, rgba(0,0,0,.95) 100%)`;
+  const size = 150;
+  return (
+    <div style={{width:'100%',height:'100%',background:`radial-gradient(ellipse at 50% 50%, ${pal.bg} 0%, rgba(2,3,8,1) 70%)`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
+      {/* Deep space twinkling stars */}
+      {[...Array(60)].map((_,i)=>(
+        <div key={i} style={{position:'absolute',left:`${(i*53)%100}%`,top:`${(i*41)%100}%`,width:i%6===0?2:1,height:i%6===0?2:1,borderRadius:'50%',background:'#fff',opacity:.4+(i%5)*.12,animation:`twinkle ${2+(i%4)}s ease-in-out ${i*.13}s infinite`}}/>
+      ))}
+      {/* Nebula */}
+      <div style={{position:'absolute',inset:0,background:`radial-gradient(ellipse at 80% 20%, ${rgba(pal.c,.18)} 0%, transparent 40%), radial-gradient(ellipse at 15% 75%, ${rgba(pal.c,.1)} 0%, transparent 50%)`,opacity:.7,pointerEvents:'none'}}/>
+      {/* Atmospheric outer glow */}
+      <div style={{position:'absolute',width:size+90,height:size+90,borderRadius:'50%',background:`radial-gradient(circle, ${rgba(pal.c,.18)} 0%, transparent 60%)`,filter:'blur(20px)',animation:hov?'pulse 2.5s ease-in-out infinite':'none'}}/>
+      {/* Orbit rings */}
+      <div style={{position:'absolute',width:size+50,height:size+50,borderRadius:'50%',border:`1px dashed ${rgba(pal.c,.18)}`,animation:'spin 60s linear infinite'}}/>
+      <div style={{position:'absolute',width:size+80,height:size+80,borderRadius:'50%',border:`1px solid ${rgba(pal.c,.08)}`,animation:'spinReverse 100s linear infinite'}}/>
+      {/* Planet */}
+      <div style={{
+        position:'relative',width:size,height:size,borderRadius:'50%',
+        background:grad,backgroundSize:'200% 100%',
+        animation:'planetSpin 35s linear infinite',
+        boxShadow:`0 0 70px ${rgba(pal.c,.45)}, inset -28px -22px 60px rgba(0,0,0,.85), inset 6px 6px 30px ${rgba(pal.c,.25)}`,
+        zIndex:5,
+        transform:hov?'scale(1.05)':'scale(1)',
+        transition:'transform .7s cubic-bezier(.22,1,.36,1)',
+      }}>
+        {/* Highlight */}
+        <div style={{position:'absolute',top:'12%',left:'18%',width:'35%',height:'30%',borderRadius:'50%',background:'radial-gradient(circle, rgba(255,255,255,.28) 0%, transparent 70%)',pointerEvents:'none',filter:'blur(4px)'}}/>
+        {/* Atmosphere rim */}
+        <div style={{position:'absolute',inset:-3,borderRadius:'50%',boxShadow:`inset 0 0 12px ${rgba(pal.c,.6)}, 0 0 24px ${rgba(pal.c,.35)}`,pointerEvents:'none'}}/>
+        {/* Cloud belt for water worlds */}
+        {(planet.world==='roshar'||planet.world==='nalthis'||planet.world==='sel') && (
+          <div style={{position:'absolute',inset:0,borderRadius:'50%',background:'linear-gradient(180deg, transparent 35%, rgba(255,255,255,.12) 45%, transparent 55%, rgba(255,255,255,.08) 65%, transparent 75%)',mixBlendMode:'screen',animation:'planetSpin 50s linear infinite reverse',pointerEvents:'none'}}/>
+        )}
+        {/* Storm spot (Roshar) */}
+        {planet.world==='roshar' && (
+          <div style={{position:'absolute',top:'30%',left:'22%',width:14,height:14,borderRadius:'50%',background:'radial-gradient(circle, #fff, rgba(255,255,255,.2) 70%, transparent)',animation:'pulse 1.8s ease-in-out infinite',filter:'blur(.5px)'}}/>
+        )}
+      </div>
+      {/* Tiny orbital moon */}
+      {(planet.world==='roshar' || planet.world==='lumar') && (
+        <div style={{position:'absolute',top:'50%',left:'50%',width:0,height:0,animation:'spin 18s linear infinite'}}>
+          <div style={{position:'absolute',left:size/2+18,top:-4,width:8,height:8,borderRadius:'50%',background:'linear-gradient(135deg, #c0c8d0, #5a6878)',boxShadow:'0 0 8px rgba(180,200,220,.4)'}}/>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Planet Card ────────────────────────────────────────────
 function PlanetCard({ planet, img, onOpen, index=0 }) {
   const pal = P[planet.world]||{c:'#888',bg:'#050508'};
@@ -320,25 +397,7 @@ function PlanetCard({ planet, img, onOpen, index=0 }) {
       <div style={{height:220, overflow:'hidden', position:'relative'}}>
         {img
           ? <img src={img} alt={planet.name} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-          : (
-            /* CSS planet visual */
-            <div style={{width:'100%',height:'100%',background:`linear-gradient(135deg,${pal.bg},rgba(2,3,8,1))`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-              {/* Stars bg */}
-              {[...Array(30)].map((_,i)=>(
-                <div key={i} style={{position:'absolute',left:`${(i*37)%100}%`,top:`${(i*53)%100}%`,width:i%4===0?2:1,height:i%4===0?2:1,borderRadius:'50%',background:'rgba(255,255,255,.5)'}}/>
-              ))}
-              {/* Planet sphere */}
-              <div style={{
-                width:110, height:110, borderRadius:'50%',
-                background:`radial-gradient(circle at 35% 35%, ${rgba(pal.c,.9)}, ${rgba(pal.c,.3)} 60%, rgba(0,0,0,.8))`,
-                boxShadow:`0 0 40px ${rgba(pal.c,.4)}, inset -20px -15px 40px rgba(0,0,0,.7)`,
-                position:'relative', zIndex:2,
-              }}>
-                {/* Atmosphere rim */}
-                <div style={{position:'absolute',inset:-6,borderRadius:'50%',border:`2px solid ${rgba(pal.c,.2)}`,boxShadow:`0 0 20px ${rgba(pal.c,.15)}`}}/>
-              </div>
-            </div>
-          )
+          : <PlanetVisual planet={planet} pal={pal} hov={hov}/>
         }
         <div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 50%,rgba(5,5,14,.98))'}}/>
         <div style={{position:'absolute',bottom:12,left:14}}>
@@ -404,6 +463,15 @@ function WHCard({ wh, img, onOpen, index=0 }) {
           <span style={{color:rgba(wh.accent,hov?.95:.4),fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",transform:hov?'translateX(3px)':'translateX(0)',transition:'color .25s ease, transform .35s cubic-bezier(.22,1,.36,1)',display:'inline-block'}}>Ver →</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value, color }) {
+  return (
+    <div style={{marginBottom:8}}>
+      <span style={{color:rgba(color,.55),fontSize:8,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>{label}: </span>
+      <span style={{color:'#9ab0c8',fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{value}</span>
     </div>
   );
 }
@@ -538,7 +606,7 @@ function Modal({ modal, imgs, onClose }) {
 
             <div style={{marginTop:24,paddingTop:18,display:'flex',gap:10,alignItems:'center',justifyContent:'flex-end',borderTop:`1px solid ${rgba(pal.c,.1)}`}}>
               <a href="Imagenes.html" style={{color:rgba(pal.c,.7),fontSize:10,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none',background:rgba(pal.c,.08),border:`1px solid ${rgba(pal.c,.25)}`,borderRadius:7,padding:'8px 16px'}}>
-                {img?'Cambiar imagen':'+ Subir imagen'}
+                {img?'🖼 Cambiar imagen':'⊕ Subir imagen'}
               </a>
               <button onClick={onClose} style={{color:'#7788aa',fontSize:10,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",background:'none',border:'1px solid rgba(120,140,180,.18)',borderRadius:7,padding:'8px 16px',cursor:'pointer'}}>Cerrar</button>
             </div>
@@ -701,9 +769,64 @@ function HoidSection({ imgs }) {
   );
 }
 
+// ── News data ──────────────────────────────────────────────
+const NEWS = [
+  { id:'n1', date:'2026-04-22', tag:'Stormlight', world:'roshar',   title:'Confirmado: Stormlight 6 inicia un nuevo arco temporal', summary:'Brandon Sanderson confirma en su última actualización que el sexto libro del Archivo de las Tormentas dará un salto temporal de 10 años tras Viento y Verdad, abriendo la segunda mitad de la saga.', source:'Dragonsteel Forum' },
+  { id:'n2', date:'2026-03-15', tag:'Mistborn',   world:'scadrial', title:'Mistborn Era 3 entra en fase de borrador', summary:'La próxima trilogía de Mistborn — ambientada en la era espacial de Scadrial — ya tiene borrador del primer libro. Wax y Wayne dejan paso a una nueva generación de protagonistas.', source:'Sanderson Newsletter' },
+  { id:'n3', date:'2026-02-08', tag:'Adaptación', world:'roshar',   title:'El Camino de los Reyes — adaptación animada en desarrollo', summary:'Dragonsteel Entertainment anuncia el inicio de la producción de una serie animada del primer Stormlight, con estética fielmente inspirada en las ilustraciones de Michael Whelan.', source:'Dragonsteel' },
+  { id:'n4', date:'2026-01-12', tag:'Secretas',   world:'lumar',    title:'Cuarta historia secreta para 2026', summary:'Tras Trenza, Yumi y El Hombre Iluminado, Sanderson revela que la cuarta historia secreta tendrá lugar en un mundo aún no visitado y conectará directamente con Stormlight 6.', source:'17th Shard' },
+  { id:'n5', date:'2025-11-30', tag:'Cosmere',    world:'yolen',    title:'Documento oficial de Yolen filtrado por Khriss', summary:'Una nueva entrada del Arcanum Unbounded revela detalles inéditos sobre los 17 originales y la fragmentación de Adonalsium. Hoid es mencionado por primera vez con su nombre real abreviado.', source:'Arcanum Unbounded Vol. II' },
+  { id:'n6', date:'2025-10-04', tag:'Eventos',    world:'roshar',   title:'Dragonsteel Nexus 2026: agenda confirmada', summary:'La convención anual de Dragonsteel se celebrará en noviembre de 2026 en Salt Lake City con paneles dedicados a Stormlight 6, Mistborn Era 3 y la adaptación animada.', source:'Dragonsteel Events' },
+  { id:'n7', date:'2025-08-21', tag:'Comunidad',  world:'scadrial', title:'Kelsier oficialmente confirmado como Thaidakar', summary:'En el Q&A post-publicación de Viento y Verdad, Sanderson cierra una de las teorías más longevas del fandom: el líder de los Ghostbloods es, en efecto, El Superviviente operando desde el Reino Cognitivo.', source:'Sanderson Q&A' },
+  { id:'n8', date:'2025-06-15', tag:'Warbreaker', world:'nalthis',  title:'Warbreaker 2 — secuela en planificación activa', summary:'Por primera vez en 16 años, Sanderson confirma que la secuela de El Aliento de los Dioses dejará de ser hipotética. Vasher y Vivenna regresan a Nalthis.', source:'Sanderson Update' },
+];
+
+// ── News Card ──────────────────────────────────────────────
+function NewsCard({ item, index=0, featured=false }) {
+  const pal = P[item.world]||{c:'#c8b880',bg:'#080808',name:'Cosmere'};
+  const [hov, setHov] = useState(false);
+  const date = new Date(item.date);
+  const fmtDate = date.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}).replace('.','');
+  return (
+    <article onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} style={{
+      background:`linear-gradient(160deg,rgba(8,10,20,.95),${pal.bg})`,
+      border:`1px solid ${rgba(pal.c, hov?.5:.18)}`,
+      borderLeft:`3px solid ${rgba(pal.c, hov?.95:.5)}`,
+      borderRadius:14, overflow:'hidden', cursor:'pointer',
+      boxShadow: hov ? `0 14px 36px rgba(0,0,0,.55),0 0 22px ${rgba(pal.c,.18)}` : '0 2px 8px rgba(0,0,0,.3)',
+      transform: hov ? 'translateY(-5px) scale(1.008)' : 'translateY(0) scale(1)',
+      transition:'transform .45s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .3s ease',
+      animation:`fadeUp .55s cubic-bezier(.22,1,.36,1) ${Math.min(index*.06,.45)}s both`,
+      willChange:'transform,box-shadow',
+      gridColumn: featured ? 'span 2' : 'auto',
+      display:'flex', flexDirection:'column',
+    }}>
+      <div style={{padding:`${featured?20:16}px ${featured?22:18}px`}}>
+        <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,gap:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{display:'inline-flex',alignItems:'center',gap:6,background:rgba(pal.c,.1),border:`1px solid ${rgba(pal.c,.3)}`,borderRadius:20,padding:'3px 10px'}}>
+              <span style={{width:5,height:5,borderRadius:'50%',background:pal.c,boxShadow:`0 0 6px ${pal.c}`,animation:'pulse 2.4s ease-in-out infinite',display:'inline-block'}}/>
+              <span style={{color:pal.c,fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif"}}>{item.tag}</span>
+            </span>
+            <span style={{color:'#445566',fontSize:9,fontFamily:"'DM Sans',sans-serif",letterSpacing:'.06em'}}>{fmtDate}</span>
+          </div>
+          <span style={{color:rgba(pal.c,hov?.8:.4),fontSize:14,transform:hov?'translateX(3px) rotate(-15deg)':'none',transition:'transform .4s cubic-bezier(.22,1,.36,1), color .3s ease',display:'inline-block'}}>↗</span>
+        </header>
+        <h3 style={{color:'#f0e8d8',fontSize:featured?20:15,fontFamily:"'Cinzel',serif",fontWeight:700,lineHeight:1.3,marginBottom:10,letterSpacing:'.02em'}}>{item.title}</h3>
+        <p style={{color:'#8899aa',fontSize:featured?13:11.5,lineHeight:1.7,fontFamily:"'DM Sans',sans-serif",marginBottom:14}}>{item.summary}</p>
+        <footer style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:10,borderTop:`1px solid ${rgba(pal.c,.1)}`}}>
+          <span style={{color:'#445566',fontSize:9,letterSpacing:'.08em',fontFamily:"'DM Sans',sans-serif",fontStyle:'italic'}}>{item.source}</span>
+          <span style={{color:rgba(pal.c,hov?.9:.5),fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",transform:hov?'translateX(3px)':'translateX(0)',display:'inline-block',transition:'color .25s ease, transform .35s cubic-bezier(.22,1,.36,1)'}}>Leer más →</span>
+        </footer>
+      </div>
+    </article>
+  );
+}
+
 // ── Nav Sidebar ───────────────────────────────────────────
 const SECTIONS = [
   {id:'hoid',       icon:'✦', label:'Hoid'},
+  {id:'noticias',   icon:'◆', label:'Noticias'},
   {id:'personajes', icon:'◉', label:'Personajes'},
   {id:'libros',     icon:'◈', label:'Libros'},
   {id:'planetas',   icon:'◐', label:'Planetas'},
@@ -735,7 +858,7 @@ function Sidebar({ active, onSelect }) {
         border:'1px solid rgba(255,255,255,.08)',
         color:'#445566',display:'flex',alignItems:'center',justifyContent:'center',
         fontSize:14,textDecoration:'none',transition:'all .2s',marginBottom:6,
-      }}>+</a>
+      }}>⊕</a>
       <a href="Cosmere.html" title="Atlas" style={{
         width:38,height:38,borderRadius:9,
         border:'1px solid rgba(255,255,255,.08)',
@@ -829,7 +952,7 @@ function App() {
     return true;
   }),[search]);
 
-  const sectionTitle = {hoid:'Hoid — El Eterno Viajero',personajes:'Personajes',libros:'Libros por Mundo',planetas:'Planetas y Sistemas',saltamundo:'Saltamundo'}[section];
+  const sectionTitle = {hoid:'Hoid — El Eterno Viajero',noticias:'Noticias del Cosmere',personajes:'Personajes',libros:'Libros por Mundo',planetas:'Planetas y Sistemas',saltamundo:'Saltamundo'}[section];
 
   const charWorlds=[...new Set(CHARACTERS.map(c=>c.world))];
   const bookWorlds=[...new Set(BOOKS.map(b=>b.world))];
@@ -853,7 +976,7 @@ function App() {
             <h1 style={{color:'#c8b880',fontSize:14,fontFamily:"'Cinzel',serif",fontWeight:600,letterSpacing:'.05em'}}>{sectionTitle}</h1>
           </div>
           <div style={{display:'flex',gap:10,alignItems:'center'}}>
-            <a href="Imagenes.html" style={{color:'#c8b880',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none',background:'rgba(200,184,128,.08)',border:'1px solid rgba(200,184,128,.22)',borderRadius:6,padding:'5px 12px'}}>+ Imágenes</a>
+            <a href="Imagenes.html" style={{color:'#c8b880',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none',background:'rgba(200,184,128,.08)',border:'1px solid rgba(200,184,128,.22)',borderRadius:6,padding:'5px 12px'}}>⊕ Imágenes</a>
             <a href="Guia.html"    style={{color:'#445566',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none'}}>Guía</a>
             <a href="Cosmere.html" style={{color:'#334455',fontSize:10,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'DM Sans',sans-serif",textDecoration:'none'}}>↗ Atlas</a>
           </div>
@@ -864,6 +987,21 @@ function App() {
 
           {/* HOID */}
           {section==='hoid' && <HoidSection imgs={imgs}/>}
+
+          {/* NOTICIAS */}
+          {section==='noticias' && (
+            <div>
+              <SectionHeader title="Noticias del Cosmere" count={NEWS.length}/>
+              <p style={{color:'#445566',fontSize:12,fontFamily:"'DM Sans',sans-serif",maxWidth:640,lineHeight:1.7,marginBottom:24}}>
+                Últimas actualizaciones sobre los libros, eventos oficiales de Dragonsteel y revelaciones del universo de Brandon Sanderson.
+              </p>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:16}}>
+                {NEWS.map((n,i)=>(
+                  <NewsCard key={n.id} item={n} index={i} featured={i===0}/>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* PERSONAJES */}
           {section==='personajes' && (
