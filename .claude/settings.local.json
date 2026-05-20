@@ -47,7 +47,13 @@
       "Bash(python -c ' *)",
       "Read(//c/Users/jucar/**)",
       "Bash(python3)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "PowerShell(Test-Path *)",
+      "Bash(mkdir -p cosmere_design)",
+      "Bash(cp \"/mnt/c/Users/jucar/AppData/Local/Temp/cosmere_design/bundle.tar\" /tmp/cosmere_design/)",
+      "Bash(tar -xf /tmp/cosmere_design/bundle.tar -C /tmp/cosmere_design/)",
+      "Read(//tmp/**)",
+      "PowerShell(Get-ChildItem *)"
     ]
   }
 }
